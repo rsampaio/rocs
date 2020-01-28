@@ -2,9 +2,11 @@ extern crate clap;
 #[macro_use]
 extern crate prettytable;
 extern crate roc;
+extern crate rusqlite;
 extern crate serde;
 extern crate serde_json;
 extern crate spinners;
+extern crate time;
 extern crate uuid;
 
 use clap::{App, Arg, SubCommand};
@@ -13,6 +15,7 @@ use roc::apis::configuration::Configuration;
 use std::error::Error;
 
 mod cli;
+pub mod store;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("roc")
@@ -100,7 +103,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("bind")
                 .about("Service Binding request")
                 .arg(
-                    Arg::with_name("instance")
+                    Arg::with_name("instance-id")
                         .short("i")
                         .long("instance")
                         .takes_value(true)
@@ -119,7 +122,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("unbind")
                 .about("Service Binding removal")
                 .arg(
-                    Arg::with_name("instance")
+                    Arg::with_name("instance-id")
                         .short("i")
                         .long("instance")
                         .takes_value(true)

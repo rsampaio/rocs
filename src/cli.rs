@@ -28,14 +28,23 @@ pub fn catalog(
     match options.json_output {
         false => {
             let mut services_table = Table::new();
-            services_table.add_row(row!["Service", "Description", "Plans"]);
+
+            services_table.add_row(row!["Service", "Description", "Plans", "Extensions"]);
 
             for s in catalog.services.unwrap().iter() {
                 let mut plans_table = Table::new();
+                let mut extensions_table = Table::new();
+
                 plans_table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
 
                 for p in s.plans.iter() {
                     plans_table.add_row(row![p.name]);
+                }
+
+                if let Some(extensions) = &s.extensions {
+                    for p in extensions.iter() {
+                        extensions_table.add_row(row![p.id]);
+                    }
                 }
 
                 services_table.add_row(row![s.name, s.description, plans_table]);
@@ -138,13 +147,20 @@ pub fn provision(
         .service_instance_get(DEFAULT_API_VERSION, &*instance_id, USER_AGENT, "", "")
         .expect("service instance fetch failed");
 
-    let mut table = Table::new();
-    table.add_row(row!["Instance ID", "Dashboard URL"]);
-    table.add_row(row![
-        &*instance_id,
-        provisioned_instance.dashboard_url.unwrap()
-    ]);
-    table.printstd();
+    match options.json_output {
+        false => {
+            let mut table = Table::new();
+            table.add_row(row!["Instance ID", "Dashboard URL"]);
+            table.add_row(row![
+                &*instance_id,
+                provisioned_instance.dashboard_url.unwrap()
+            ]);
+            table.printstd();
+        }
+        true => {
+            println!("{}", serde_json::to_string(&provisioned_instance).unwrap());
+        }
+    };
 
     Ok(())
 }
@@ -155,22 +171,11 @@ pub fn bind(
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
     let binding_api = client.service_bindings_api();
-    let instance_api = client.service_instances_api();
 
     let binding_id = Uuid::new_v4().to_hyphenated().to_string();
     let instance_id = matches.value_of("instance-id").unwrap().to_string();
 
-    let service_instance_response = instance_api
-        .service_instance_get(DEFAULT_API_VERSION, &*instance_id, USER_AGENT, "", "")
-        .expect("service instance request failed");
-
-    let (service_id, plan_id) = find_service_plan_id(
-        &client,
-        service_instance_response.service_id.unwrap(),
-        service_instance_response.plan_id.unwrap(),
-    )?;
-
-    let binding_request = ServiceBindingRequest::new(service_id.clone(), plan_id.clone());
+    let binding_request = ServiceBindingRequest::new("".into(), "".into());
     let _binding_response = binding_api.service_binding_binding(
         DEFAULT_API_VERSION,
         &*instance_id,
@@ -188,9 +193,9 @@ pub fn bind(
                 DEFAULT_API_VERSION,
                 &*instance_id,
                 &*binding_id,
-                &*service_id, // service_id
-                &*plan_id,    // plan id
-                "",           // operation
+                "", // service_id
+                "", // plan id
+                "", // operation
             );
 
             if let Ok(lo) = last_op {
@@ -205,6 +210,27 @@ pub fn bind(
         println!("");
         sp.stop();
     }
+
+    let provisioned_binding = binding_api
+        .service_binding_get(
+            DEFAULT_API_VERSION,
+            &*instance_id,
+            &*binding_id,
+            USER_AGENT,
+            "",
+            "",
+        )
+        .expect("service binding fetch failed");
+
+    match options.json_output {
+        false => {
+            let mut table = Table::new();
+            table.add_row(row!["Credentials"]);
+            table.add_row(row![serde_json::to_string_pretty(&provisioned_binding)?]);
+            table.printstd();
+        }
+        true => println!("{}", serde_json::to_string(&provisioned_binding).unwrap()),
+    };
 
     Ok(())
 }

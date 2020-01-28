@@ -13,5 +13,7 @@ clap = "2.33.0"
 prettytable-rs = "^0.8"
 uuid = { version = "0.8.1", features = ["v4"] }
 spinners = "1.2.0"
+rusqlite = "0.21.0"
+time = "0.1.38"
 
 [dev-dependencies]

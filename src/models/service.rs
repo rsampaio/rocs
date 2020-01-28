@@ -31,6 +31,8 @@ pub struct Service {
     pub plan_updateable: Option<bool>,
     #[serde(rename = "plans")]
     pub plans: Vec<crate::models::Plan>,
+    #[serde(rename = "extensions", skip_serializing_if = "Option::is_none")]
+    pub extensions: Option<Vec<crate::models::Extension>>,
 }
 
 impl Service {
@@ -52,6 +54,7 @@ impl Service {
             dashboard_client: None,
             plan_updateable: None,
             plans: plans,
+            extensions: None,
         }
     }
 }

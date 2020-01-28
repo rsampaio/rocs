@@ -2,6 +2,8 @@ mod async_operation;
 pub use self::async_operation::AsyncOperation;
 mod catalog;
 pub use self::catalog::Catalog;
+mod extension;
+pub use self::extension::Extension;
 mod dashboard_client;
 pub use self::dashboard_client::DashboardClient;
 mod error;
