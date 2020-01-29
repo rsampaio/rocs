@@ -1,27 +1,18 @@
 extern crate clap;
-#[macro_use]
-extern crate prettytable;
 extern crate roc;
-extern crate rusqlite;
-extern crate serde;
-extern crate serde_json;
-extern crate spinners;
-extern crate time;
-extern crate uuid;
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 use roc::apis::client::APIClient;
 use roc::apis::configuration::Configuration;
+use roc::cli;
 use std::error::Error;
-
-mod cli;
-pub mod store;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("roc")
         .version("0.1")
         .author("Rodrigo Vaz")
         .about("Rust OSB Client")
+        .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(
             Arg::with_name("broker_url")
                 .short("b")
@@ -122,11 +113,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("unbind")
                 .about("Service Binding removal")
                 .arg(
-                    Arg::with_name("instance-id")
-                        .short("i")
-                        .long("instance")
+                    Arg::with_name("binding-id")
+                        .short("b")
+                        .long("binding")
                         .takes_value(true)
-                        .help("instance ID or name to bind")
+                        .help("Binding ID to unbind")
                         .required(true),
                 ),
         )
@@ -134,6 +125,27 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("catalog")
                 .about("Catalog request")
                 .alias("cat"),
+        )
+        .subcommand(
+            SubCommand::with_name("credentials")
+                .alias("creds")
+                .about("Binding credentials")
+                .arg(
+                    Arg::with_name("binding-id")
+                        .short("b")
+                        .long("binding")
+                        .takes_value(true)
+                        .help("Binding ID to fetch credentials")
+                        .required(false),
+                )
+                .arg(
+                    Arg::with_name("instance-id")
+                        .short("i")
+                        .long("instance")
+                        .takes_value(true)
+                        .help("Instance ID to fetch credentials")
+                        .required(false),
+                ),
         )
         .get_matches();
 
@@ -178,6 +190,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             client,
             options,
         ),
-        _ => Err(Box::from("no match")),
+        _ => Ok(()),
     }
 }

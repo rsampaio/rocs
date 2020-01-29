@@ -1,10 +1,12 @@
+use apis::client::APIClient;
+use models;
+use models::{ServiceBindingRequest, ServiceInstanceProvisionRequest};
 use prettytable::{format, Table};
-use roc::apis::client::APIClient;
-use roc::models::{ServiceBindingRequest, ServiceInstanceProvisionRequest};
 use serde_json::json;
 use spinners::{Spinner, Spinners};
 use std::error::Error;
 use std::{thread, time};
+use store;
 use uuid::Uuid;
 
 const USER_AGENT: &str = "ROC v0.1";
@@ -132,7 +134,7 @@ pub fn provision(
 
             if let Ok(lo) = last_op {
                 match lo.state {
-                    roc::models::State::InProgress => {
+                    models::State::InProgress => {
                         thread::sleep(time::Duration::new(2, 0));
                     }
                     _ => break,
@@ -200,7 +202,7 @@ pub fn bind(
 
             if let Ok(lo) = last_op {
                 match lo.state {
-                    roc::models::State::InProgress => {
+                    models::State::InProgress => {
                         thread::sleep(time::Duration::new(2, 0));
                     }
                     _ => break,
@@ -222,6 +224,12 @@ pub fn bind(
         )
         .expect("service binding fetch failed");
 
+    store::binding_save(
+        instance_id,
+        binding_id,
+        serde_json::to_string(&provisioned_binding).unwrap(),
+    )?;
+
     match options.json_output {
         false => {
             let mut table = Table::new();
@@ -235,12 +243,28 @@ pub fn bind(
     Ok(())
 }
 pub fn unbind(
-    _matches: &clap::ArgMatches,
-    _client: APIClient,
-    _options: Options,
+    matches: &clap::ArgMatches,
+    client: APIClient,
+    options: Options,
 ) -> Result<(), Box<dyn Error>> {
-    Err(Box::from("not implemented"))
+    let binding_api = client.service_bindings_api();
+
+    let binding_id = matches.value_of("binding-id").unwrap().to_string();
+    let (_, instance_id) = store::binding_instance_id(&binding_id)?;
+
+    let _unbinding_response = binding_api.service_binding_unbinding(
+        DEFAULT_API_VERSION,
+        &*instance_id,
+        &*binding_id,
+        "", // service_id
+        "", // plan_id
+        USER_AGENT,
+        !options.synchronous,
+    );
+
+    Ok(())
 }
+
 pub fn creds(
     _matches: &clap::ArgMatches,
     _client: APIClient,
