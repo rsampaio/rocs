@@ -2,6 +2,8 @@
 name = "roc"
 version = "1.0.0"
 authors = ["OpenAPI Generator team and contributors"]
+description = "Rust OSB client"
+license = "MIT"
 
 [dependencies]
 serde = "^1.0"

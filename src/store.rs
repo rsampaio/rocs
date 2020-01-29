@@ -11,7 +11,7 @@ struct Binding {
 }
 
 // TODO: configurable database location?
-const DB: &str = "~/.local/roc";
+const DB: &str = "~/.local/rocs";
 
 pub fn binding_save(
     instance_id: String,

@@ -1,23 +1,23 @@
 extern crate clap;
-extern crate roc;
+extern crate rocs;
 
 use clap::{App, AppSettings, Arg, SubCommand};
-use roc::apis::client::APIClient;
-use roc::apis::configuration::Configuration;
-use roc::cli;
+use rocs::apis::client::APIClient;
+use rocs::apis::configuration::Configuration;
+use rocs::cli;
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let matches = App::new("roc")
+    let matches = App::new("rocs")
         .version("0.1")
         .author("Rodrigo Vaz")
-        .about("Rust OSB Client")
+        .about("Rust OSB Client 'Super'")
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(
             Arg::with_name("broker_url")
                 .short("b")
                 .long("broker")
-                .env("ROC_BROKER_URL")
+                .env("ROCS_BROKER_URL")
                 .takes_value(true)
                 .required(true),
         )
@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Arg::with_name("broker_user")
                 .short("u")
                 .long("username")
-                .env("ROC_BROKER_USERNAME")
+                .env("ROCS_BROKER_USERNAME")
                 .takes_value(true)
                 .required(true),
         )
@@ -33,7 +33,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             Arg::with_name("broker_pass")
                 .short("a")
                 .long("password")
-                .env("ROC_BROKER_PASSWORD")
+                .env("ROCS_BROKER_PASSWORD")
                 .takes_value(true)
                 .required(true),
         )

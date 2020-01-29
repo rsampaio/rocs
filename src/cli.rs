@@ -9,7 +9,7 @@ use std::{thread, time};
 use store;
 use uuid::Uuid;
 
-const USER_AGENT: &str = "ROC v0.1";
+const USER_AGENT: &str = "ROCS v0.1";
 const DEFAULT_API_VERSION: &str = "2.15";
 
 pub struct Options {
