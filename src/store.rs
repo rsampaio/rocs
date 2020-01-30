@@ -1,3 +1,4 @@
+use dirs::home_dir;
 use rusqlite::{params, Connection};
 use std::error::Error;
 use time::Timespec;
@@ -10,27 +11,31 @@ struct Binding {
     data: String,
 }
 
-// TODO: configurable database location?
-const DB: &str = "~/.local/rocs";
+fn open_connection() -> Result<Connection, Box<dyn Error>> {
+    // TODO: configurable database location?
+    let home = home_dir().unwrap();
+    let db = format!("{}/.local/rocs", home.to_str().unwrap());
+    Ok(Connection::open(db)?)
+}
 
 pub fn binding_save(
     instance_id: String,
     binding_id: String,
     data: String,
 ) -> Result<String, Box<dyn Error>> {
-    let conn = Connection::open(DB)?;
+    let conn = open_connection()?;
     binding_table_check(&conn)?;
 
     conn.execute(
-        "INSERT INTO service_bindings (binding_id, instance_id, updated_at, data) VALUES (?1, ?2, NOW(), ?3)",
-        params![binding_id, instance_id, data],
+        "INSERT INTO service_bindings (binding_id, instance_id, updated_at, data) VALUES (?1, ?2, ?3, ?4)",
+        params![binding_id, instance_id, time::get_time(), data],
     )?;
 
     Ok(binding_id)
 }
 
 pub fn binding_instance_id(binding_id: &String) -> Result<(String, String), Box<dyn Error>> {
-    let conn = Connection::open(DB)?;
+    let conn = open_connection()?;
     binding_table_check(&conn)?;
 
     let mut stmt = conn.prepare(
@@ -56,7 +61,7 @@ pub fn binding_instance_id(binding_id: &String) -> Result<(String, String), Box<
 }
 
 pub fn binding_list(instance_id: String) -> Result<Vec<String>, Box<dyn Error>> {
-    let conn = Connection::open(DB)?;
+    let conn = open_connection()?;
     binding_table_check(&conn)?;
 
     let mut stmt =
@@ -72,7 +77,7 @@ pub fn binding_list(instance_id: String) -> Result<Vec<String>, Box<dyn Error>> 
 }
 
 pub fn binding_data(binding_id: String) -> Result<String, Box<dyn Error>> {
-    let conn = Connection::open(DB)?;
+    let conn = open_connection()?;
     binding_table_check(&conn)?;
 
     let mut stmt = conn.prepare("SELECT data FROM service_bindings WHERE binding_id = ?1")?;

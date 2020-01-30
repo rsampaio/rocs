@@ -1,6 +1,6 @@
 [package]
 name = "rocs"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["OpenAPI Generator team and contributors"]
 description = "Rust OSB client"
 license = "MIT"
@@ -17,5 +17,5 @@ uuid = { version = "0.8.1", features = ["v4"] }
 spinners = "1.2.0"
 rusqlite = "0.21.0"
 time = "0.1.38"
-
+dirs = "*"
 [dev-dependencies]

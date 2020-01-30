@@ -2,6 +2,7 @@
 extern crate serde_derive;
 #[macro_use]
 extern crate prettytable;
+extern crate dirs;
 extern crate reqwest;
 extern crate rusqlite;
 extern crate serde;
