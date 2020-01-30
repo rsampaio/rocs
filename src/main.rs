@@ -185,11 +185,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             client,
             options,
         ),
-        Some("creds") => cli::creds(
-            matches.subcommand_matches("creds").unwrap(),
+        Some("credentials") => cli::creds(
+            matches.subcommand_matches("credentials").unwrap(),
             client,
             options,
         ),
-        _ => Ok(()),
+        _ => Err(Box::from("unknown command"))
     }
 }
