@@ -113,6 +113,14 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("unbind")
                 .about("Service Binding removal")
                 .arg(
+                    Arg::with_name("instance-id")
+                        .short("i")
+                        .long("instance")
+                        .takes_value(true)
+                        .help("instance ID or name to bind")
+                        .required(true),
+                )
+                .arg(
                     Arg::with_name("binding-id")
                         .short("b")
                         .long("binding")
@@ -136,7 +144,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .long("binding")
                         .takes_value(true)
                         .help("Binding ID to fetch credentials")
-                        .required(false),
+                        .required(true),
                 )
                 .arg(
                     Arg::with_name("instance-id")
@@ -144,7 +152,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .long("instance")
                         .takes_value(true)
                         .help("Instance ID to fetch credentials")
-                        .required(false),
+                        .required(true),
                 ),
         )
         .get_matches();

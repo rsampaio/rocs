@@ -6,7 +6,6 @@ use serde_json::json;
 use spinners::{Spinner, Spinners};
 use std::error::Error;
 use std::{thread, time};
-use store;
 use uuid::Uuid;
 
 const USER_AGENT: &str = "ROCS v0.1";
@@ -224,15 +223,13 @@ pub fn bind(
         )
         .expect("service binding fetch failed");
 
-    store::binding_save(
-        instance_id,
-        binding_id,
-        serde_json::to_string(&provisioned_binding).unwrap(),
-    )?;
-
     match options.json_output {
         false => {
             let mut table = Table::new();
+            table.add_row(row!["Instance ID"]);
+            table.add_row(row![&*instance_id]);
+            table.add_row(row!["Binding ID"]);
+            table.add_row(row![&*binding_id]);
             table.add_row(row!["Credentials"]);
             table.add_row(row![serde_json::to_string_pretty(&provisioned_binding)?]);
             table.printstd();
@@ -242,6 +239,7 @@ pub fn bind(
 
     Ok(())
 }
+
 pub fn unbind(
     matches: &clap::ArgMatches,
     client: APIClient,
@@ -249,8 +247,8 @@ pub fn unbind(
 ) -> Result<(), Box<dyn Error>> {
     let binding_api = client.service_bindings_api();
 
+    let instance_id = matches.value_of("instance-id").unwrap().to_string();
     let binding_id = matches.value_of("binding-id").unwrap().to_string();
-    let (_, instance_id) = store::binding_instance_id(&binding_id)?;
 
     let _unbinding_response = binding_api.service_binding_unbinding(
         DEFAULT_API_VERSION,
@@ -260,17 +258,47 @@ pub fn unbind(
         "", // plan_id
         USER_AGENT,
         !options.synchronous,
-    );
+    ).expect("service binding unbind failed");
 
     Ok(())
 }
 
 pub fn creds(
-    _matches: &clap::ArgMatches,
-    _client: APIClient,
-    _options: Options,
+    matches: &clap::ArgMatches,
+    client: APIClient,
+    options: Options,
 ) -> Result<(), Box<dyn Error>> {
-    Err(Box::from("not implemented"))
+    let binding_api = client.service_bindings_api();
+
+    let instance_id = matches.value_of("instance-id").unwrap().to_string();
+    let binding_id = matches.value_of("binding-id").unwrap().to_string();
+
+    let provisioned_binding = binding_api
+        .service_binding_get(
+            DEFAULT_API_VERSION,
+            &*instance_id,
+            &*binding_id,
+            USER_AGENT,
+            "",
+            "",
+        )
+        .expect("service binding fetch failed");
+
+    match options.json_output {
+        false => {
+            let mut table = Table::new();
+            table.add_row(row!["Instance ID"]);
+            table.add_row(row![&*instance_id]);
+            table.add_row(row!["Binding ID"]);
+            table.add_row(row![&*binding_id]);
+            table.add_row(row!["Credentials"]);
+            table.add_row(row![serde_json::to_string_pretty(&provisioned_binding)?]);
+            table.printstd();
+        }
+        true => println!("{}", serde_json::to_string(&provisioned_binding).unwrap()),
+    };
+
+    Ok(())
 }
 
 fn find_service_plan_id(
