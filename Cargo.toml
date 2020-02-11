@@ -1,6 +1,6 @@
 [package]
 name = "rocs"
-version = "1.0.1"
+version = "1.0.2"
 authors = ["OpenAPI Generator team and contributors"]
 description = "Rust OSB client"
 license = "MIT"
