@@ -4,7 +4,6 @@ extern crate serde_derive;
 extern crate prettytable;
 extern crate dirs;
 extern crate reqwest;
-extern crate rusqlite;
 extern crate serde;
 extern crate serde_json;
 extern crate spinners;
