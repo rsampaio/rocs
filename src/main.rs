@@ -87,7 +87,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .long("instance-id")
                         .takes_value(true)
                         .required(true)
-                        .help("service intance id to deprovision"),
+                        .help("service instance id to deprovision"),
                 ),
         )
         .subcommand(
