@@ -55,5 +55,7 @@ mod service_instance_resource;
 pub use self::service_instance_resource::ServiceInstanceResource;
 mod service_instance_schema;
 pub use self::service_instance_schema::ServiceInstanceSchema;
+mod service_instance_output;
+pub use self::service_instance_output::ServiceInstanceOutput;
 mod service_instance_update_request;
 pub use self::service_instance_update_request::ServiceInstanceUpdateRequest;

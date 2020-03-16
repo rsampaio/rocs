@@ -1,6 +1,6 @@
 use apis::client::APIClient;
 use models;
-use models::{ServiceBindingRequest, ServiceInstanceProvisionRequest};
+use models::{ServiceBindingRequest, ServiceInstanceOutput, ServiceInstanceProvisionRequest};
 use prettytable::{format, Table};
 use serde_json::json;
 use spinners::{Spinner, Spinners};
@@ -159,7 +159,12 @@ pub fn provision(
             table.printstd();
         }
         true => {
-            println!("{}", serde_json::to_string(&provisioned_instance).unwrap());
+            let si_out = ServiceInstanceOutput {
+                service_instance_id: Some(instance_id),
+                service_instance_resource: Some(provisioned_instance),
+            };
+
+            println!("{}", serde_json::to_string(&si_out).unwrap());
         }
     };
 
@@ -250,15 +255,17 @@ pub fn unbind(
     let instance_id = matches.value_of("instance-id").unwrap().to_string();
     let binding_id = matches.value_of("binding-id").unwrap().to_string();
 
-    let _unbinding_response = binding_api.service_binding_unbinding(
-        DEFAULT_API_VERSION,
-        &*instance_id,
-        &*binding_id,
-        "", // service_id
-        "", // plan_id
-        USER_AGENT,
-        !options.synchronous,
-    ).expect("service binding unbind failed");
+    let _unbinding_response = binding_api
+        .service_binding_unbinding(
+            DEFAULT_API_VERSION,
+            &*instance_id,
+            &*binding_id,
+            "", // service_id
+            "", // plan_id
+            USER_AGENT,
+            !options.synchronous,
+        )
+        .expect("service binding unbind failed");
 
     Ok(())
 }
