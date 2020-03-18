@@ -1,6 +1,9 @@
 use apis::client::APIClient;
 use models;
-use models::{ServiceBindingRequest, ServiceInstanceOutput, ServiceInstanceProvisionRequest};
+use models::{
+    ServiceBindingOutput, ServiceBindingRequest, ServiceInstanceOutput,
+    ServiceInstanceProvisionRequest,
+};
 use prettytable::{format, Table};
 use serde_json::json;
 use spinners::{Spinner, Spinners};
@@ -192,8 +195,6 @@ pub fn bind(
     );
 
     if !options.synchronous {
-        let sp = Spinner::new(Spinners::Point, "provisioning binding".to_string());
-
         loop {
             let last_op = binding_api.service_binding_last_operation_get(
                 DEFAULT_API_VERSION,
@@ -214,7 +215,6 @@ pub fn bind(
             }
         }
         println!("");
-        sp.stop();
     }
 
     let provisioned_binding = binding_api
@@ -239,7 +239,13 @@ pub fn bind(
             table.add_row(row![serde_json::to_string_pretty(&provisioned_binding)?]);
             table.printstd();
         }
-        true => println!("{}", serde_json::to_string(&provisioned_binding).unwrap()),
+        true => {
+            let sb_out = ServiceBindingOutput {
+                service_binding_id: Some(instance_id),
+                service_binding_resource: Some(provisioned_binding),
+            };
+            println!("{}", serde_json::to_string(&sb_out).unwrap());
+        }
     };
 
     Ok(())

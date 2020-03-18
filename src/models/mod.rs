@@ -29,6 +29,8 @@ mod service;
 pub use self::service::Service;
 mod service_binding_endpoint;
 pub use self::service_binding_endpoint::ServiceBindingEndpoint;
+mod service_binding_output;
+pub use self::service_binding_output::ServiceBindingOutput;
 mod service_binding_request;
 pub use self::service_binding_request::ServiceBindingRequest;
 mod service_binding_resouce_object;
