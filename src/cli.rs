@@ -105,8 +105,10 @@ pub fn provision(
         String::from(""),
     );
 
-    // TODO(rsampaio): receive parameters from caller
-    provision_request.parameters = Some(json!({"region": "us-east-1"}));
+    // TODO(rsampaio): receive parameters from caller and validate with json schema if available
+    //
+    let _parameteres = matches.values_of("parameters");
+    provision_request.parameters = Some(json!({}));
 
     let instance_id = Uuid::new_v4().to_hyphenated().to_string();
 
@@ -342,4 +344,8 @@ fn find_service_plan_id(
     }
 
     Ok((service_id, plan_id))
+}
+
+fn parse_parameters(_parameters: Vec<String>) -> Result<Vec<String>, &'static str> {
+    Ok(vec![])
 }

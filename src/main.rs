@@ -68,8 +68,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Arg::with_name("parameters")
                         .short("P")
                         .long("params")
+                        .multiple(true)
                         .takes_value(true)
-                        .help("parameters to provision service instance"),
+                        .help("parameters to provision service instance. ex: region=us-east-1 other=value"),
                 )
                 .arg(
                     Arg::with_name("wait")
@@ -106,8 +107,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Arg::with_name("parameters")
                         .short("P")
                         .long("params")
+                        .multiple(true)
                         .takes_value(true)
-                        .help("parameters to provision service instance"),
+                        .help("parameters to provision service instance. ex: param1=value1 param2=value2"),
                 ),
         )
         .subcommand(
