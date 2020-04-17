@@ -1,9 +1,10 @@
 extern crate clap;
+extern crate rocl;
 extern crate rocs;
 
 use clap::{App, AppSettings, Arg, SubCommand};
-use rocs::apis::client::APIClient;
-use rocs::apis::configuration::Configuration;
+use rocl::apis::client::APIClient;
+use rocl::apis::configuration::Configuration;
 use rocs::cli;
 use std::error::Error;
 
@@ -198,6 +199,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             client,
             options,
         ),
-        _ => Err(Box::from("unknown command"))
+        _ => Err(Box::from("unknown command")),
     }
 }

@@ -205,7 +205,7 @@ pub fn bind(
 
             if let Ok(lo) = last_op {
                 match lo.state {
-                    models::State::InProgress => {
+                    rocl::models::State::InProgress => {
                         thread::sleep(time::Duration::new(2, 0));
                     }
                     _ => break,

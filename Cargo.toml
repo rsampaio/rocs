@@ -16,6 +16,6 @@ spinners = "1.2.0"
 time = "0.1.38"
 dirs = "2.0.2"
 rusqlite = "0.21.0"
-rocl = "0.0.1"
+rocl = "0.0.4"
 
 [dev-dependencies]
