@@ -1,15 +1,13 @@
-use apis::client::APIClient;
-use models;
-use models::{
-    ServiceBindingOutput, ServiceBindingRequest, ServiceInstanceOutput,
-    ServiceInstanceProvisionRequest,
-};
 use prettytable::{format, Table};
+use rocl::apis::client::APIClient;
+use rocl::models::{ServiceBindingRequest, ServiceInstanceProvisionRequest};
 use serde_json::json;
 use spinners::{Spinner, Spinners};
 use std::error::Error;
 use std::{thread, time};
 use uuid::Uuid;
+
+use models::{ServiceBindingOutput, ServiceInstanceOutput};
 
 const USER_AGENT: &str = "ROCS v0.1";
 const DEFAULT_API_VERSION: &str = "2.15";
@@ -136,7 +134,7 @@ pub fn provision(
 
             if let Ok(lo) = last_op {
                 match lo.state {
-                    models::State::InProgress => {
+                    rocl::models::State::InProgress => {
                         thread::sleep(time::Duration::new(2, 0));
                     }
                     _ => break,

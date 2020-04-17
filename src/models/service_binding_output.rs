@@ -1,4 +1,4 @@
-use models::service_binding_resource::ServiceBindingResource;
+use rocl::models::ServiceBindingResource;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ServiceBindingOutput {

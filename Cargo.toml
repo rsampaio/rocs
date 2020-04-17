@@ -9,8 +9,6 @@ license = "MIT"
 serde = "^1.0"
 serde_derive = "^1.0"
 serde_json = "^1.0"
-url = "2.1.0"
-reqwest = "~0.9"
 clap = "2.33.0"
 prettytable-rs = "^0.8"
 uuid = { version = "0.8.1", features = ["v4"] }
@@ -18,5 +16,6 @@ spinners = "1.2.0"
 time = "0.1.38"
 dirs = "2.0.2"
 rusqlite = "0.21.0"
+rocl = "0.0.1"
 
 [dev-dependencies]
