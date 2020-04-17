@@ -1,4 +1,4 @@
-use models::service_instance_resource::ServiceInstanceResource;
+use rocl::models::ServiceInstanceResource;
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 pub struct ServiceInstanceOutput {
