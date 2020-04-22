@@ -3,13 +3,14 @@ use rocl::apis::client::APIClient;
 use rocl::models::{ServiceBindingRequest, ServiceInstanceProvisionRequest};
 use serde_json::json;
 use spinners::{Spinner, Spinners};
+use std::collections::HashMap;
 use std::error::Error;
 use std::{thread, time};
 use uuid::Uuid;
 
 use models::{ServiceBindingOutput, ServiceInstanceOutput};
 
-const USER_AGENT: &str = "ROCS v0.1";
+pub const USER_AGENT: &str = "ROCS v0.1";
 const DEFAULT_API_VERSION: &str = "2.15";
 
 pub struct Options {
@@ -105,10 +106,11 @@ pub fn provision(
         String::from(""),
     );
 
-    // TODO(rsampaio): receive parameters from caller and validate with json schema if available
-    //
-    let _parameteres = matches.values_of("parameters");
-    provision_request.parameters = Some(json!({}));
+    let parameters = matches.values_of("parameters");
+    let context = matches.values_of("context");
+
+    provision_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
+    provision_request.context = Some(json!(parse_parameters(context).unwrap()));
 
     let instance_id = Uuid::new_v4().to_hyphenated().to_string();
 
@@ -184,7 +186,13 @@ pub fn bind(
     let binding_id = Uuid::new_v4().to_hyphenated().to_string();
     let instance_id = matches.value_of("instance-id").unwrap().to_string();
 
-    let binding_request = ServiceBindingRequest::new("".into(), "".into());
+    let mut binding_request = ServiceBindingRequest::new("".into(), "".into());
+    let parameters = matches.values_of("parameters");
+    let context = matches.values_of("context");
+
+    binding_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
+    binding_request.context = Some(json!(parse_parameters(context).unwrap()));
+
     let _binding_response = binding_api.service_binding_binding(
         DEFAULT_API_VERSION,
         &*instance_id,
@@ -346,6 +354,21 @@ fn find_service_plan_id(
     Ok((service_id, plan_id))
 }
 
-fn parse_parameters(_parameters: Vec<String>) -> Result<Vec<String>, &'static str> {
-    Ok(vec![])
+fn parse_parameters(params: Option<clap::Values>) -> Result<HashMap<String, String>, &'static str> {
+    let mut parsed_params: HashMap<String, String> = HashMap::new();
+
+    match params {
+        Some(param) => {
+            for kv in param {
+                let keyvalue: Vec<&str> = kv.split('=').collect();
+                if keyvalue.len() < 2 {
+                    println!("{} does not match format key=value, ignoring", kv);
+                    continue;
+                }
+                parsed_params.insert(keyvalue[0].to_string(), keyvalue[1].to_string());
+            }
+        }
+        None => {}
+    }
+    Ok(parsed_params)
 }
