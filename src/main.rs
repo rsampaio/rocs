@@ -68,8 +68,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Arg::with_name("parameters")
                         .short("P")
                         .long("params")
+                        .multiple(true)
                         .takes_value(true)
-                        .help("parameters to provision service instance"),
+                        .help("parameters to provision service instances. ex: region=us-east-1 other=value"),
+                )
+                .arg(
+                    Arg::with_name("context")
+                        .short("C")
+                        .long("context")
+                        .multiple(true)
+                        .takes_value(true)
+                        .help("context to provision service instances. ex: account_id=123 other=value"),
                 )
                 .arg(
                     Arg::with_name("wait")
@@ -106,8 +115,17 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Arg::with_name("parameters")
                         .short("P")
                         .long("params")
+                        .multiple(true)
                         .takes_value(true)
-                        .help("parameters to provision service instance"),
+                        .help("parameters to provision service bindings. ex: param1=value1 param2=value2"),
+                )
+                .arg(
+                    Arg::with_name("context")
+                        .short("C")
+                        .long("context")
+                        .multiple(true)
+                        .takes_value(true)
+                        .help("context to provision service bindings. ex: account_id=123 other=value"),
                 ),
         )
         .subcommand(
@@ -159,6 +177,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .get_matches();
 
     let mut cfg = Configuration::new();
+    cfg.user_agent = Some(cli::USER_AGENT.to_string());
     cfg.basic_auth = Some((
         matches.value_of("broker_user").unwrap().to_owned(),
         Some(matches.value_of("broker_pass").unwrap().to_owned()),
