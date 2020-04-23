@@ -17,5 +17,6 @@ time = "0.1.38"
 dirs = "2.0.2"
 rusqlite = "0.21.0"
 rocl = "0.0.4"
+valico = "3.2.0"
 
 [dev-dependencies]
