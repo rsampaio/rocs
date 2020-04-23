@@ -10,6 +10,7 @@ extern crate serde_json;
 extern crate spinners;
 extern crate time;
 extern crate uuid;
+extern crate valico;
 
 pub mod cli;
 pub mod models;

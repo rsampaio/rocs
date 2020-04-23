@@ -1,12 +1,13 @@
 use prettytable::{format, Table};
 use rocl::apis::client::APIClient;
-use rocl::models::{ServiceBindingRequest, ServiceInstanceProvisionRequest};
+use rocl::models::{Schemas, ServiceBindingRequest, ServiceInstanceProvisionRequest};
 use serde_json::json;
 use spinners::{Spinner, Spinners};
 use std::collections::HashMap;
 use std::error::Error;
 use std::{thread, time};
 use uuid::Uuid;
+use valico::json_schema;
 
 use models::{ServiceBindingOutput, ServiceInstanceOutput};
 
@@ -96,7 +97,7 @@ pub fn provision(
 
     let si_api = client.service_instances_api();
 
-    let (service_id, plan_id) =
+    let (service_id, plan_id, schemas) =
         find_service_plan_id(&client, service, plan).expect("service or plan id not found");
 
     let mut provision_request = ServiceInstanceProvisionRequest::new(
@@ -108,6 +109,17 @@ pub fn provision(
 
     let parameters = matches.values_of("parameters");
     let context = matches.values_of("context");
+
+    match schemas {
+        Some(s) => match validate_schema(
+            s.service_instance.unwrap().create.unwrap(),
+            parameters.clone(),
+        ) {
+            Ok(_) => {}
+            Err(e) => return Err(e),
+        },
+        None => {}
+    }
 
     provision_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
     provision_request.context = Some(json!(parse_parameters(context).unwrap()));
@@ -189,6 +201,24 @@ pub fn bind(
     let mut binding_request = ServiceBindingRequest::new("".into(), "".into());
     let parameters = matches.values_of("parameters");
     let context = matches.values_of("context");
+
+    // - fetch service_instance
+    //   - extract service_id
+    //   - extract plan_id
+    // - fetch catalog
+    //   - extract schemas
+    /*
+    match schemas {
+        Some(s) => match validate_schema(
+            s.service_binding.unwrap().create.unwrap(),
+            parameters.clone(),
+        ) {
+            Ok(_) => {}
+            Err(e) => return Err(e),
+        },
+        None => {}
+    }
+     */
 
     binding_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
     binding_request.context = Some(json!(parse_parameters(context).unwrap()));
@@ -326,7 +356,7 @@ fn find_service_plan_id(
     client: &APIClient,
     service: String,
     plan: String,
-) -> Result<(String, String), &'static str> {
+) -> Result<(String, String, Option<Schemas>), &'static str> {
     let si_api = client.catalog_api();
     let catalog = si_api
         .catalog_get(DEFAULT_API_VERSION)
@@ -334,6 +364,7 @@ fn find_service_plan_id(
 
     let mut service_id = String::from("");
     let mut plan_id = String::from("");
+    let mut schemas = None;
 
     'outer: for s in catalog.services.unwrap() {
         if s.name == service {
@@ -341,6 +372,7 @@ fn find_service_plan_id(
             for p in s.plans {
                 if p.name == plan {
                     plan_id = p.id;
+                    schemas = p.schemas;
                     break 'outer;
                 }
             }
@@ -351,7 +383,7 @@ fn find_service_plan_id(
         return Err("plan or service not found");
     }
 
-    Ok((service_id, plan_id))
+    Ok((service_id, plan_id, schemas))
 }
 
 fn parse_parameters(params: Option<clap::Values>) -> Result<HashMap<String, String>, &'static str> {
@@ -371,4 +403,27 @@ fn parse_parameters(params: Option<clap::Values>) -> Result<HashMap<String, Stri
         None => {}
     }
     Ok(parsed_params)
+}
+
+fn validate_schema(
+    schema: rocl::models::SchemaParameters,
+    parameters: Option<clap::Values>,
+) -> Result<(), Box<dyn Error>> {
+    let mut scope = json_schema::Scope::new();
+
+    let schema = scope
+        .compile_and_return(schema.parameters.unwrap(), false)
+        .unwrap();
+
+    let validation = schema.validate(&json!(parse_parameters(parameters).unwrap()));
+
+    match validation.is_valid() {
+        false => {
+            for err in validation.errors {
+                println!("invalid parameter: {}", err.get_path());
+            }
+            return Err("schema validation failed".into());
+        }
+        true => return Ok(()),
+    }
 }
