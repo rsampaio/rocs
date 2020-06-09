@@ -45,6 +45,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .takes_value(false)
                 .required(false),
         )
+        .arg(
+            Arg::with_name("curl")
+                .help("Prints cURL command")
+                .long("curl")
+                .takes_value(false)
+                .required(false),
+        )
         .subcommand(
             SubCommand::with_name("provision")
                 .about("Service Instance provisioning")
@@ -186,6 +193,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let options = cli::Options {
         json_output: matches.is_present("json"),
+        curl_output: matches.is_present("curl"),
         synchronous: matches.is_present("sync"),
     };
 

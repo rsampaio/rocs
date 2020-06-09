@@ -11,11 +11,12 @@ use valico::json_schema;
 
 use models::{ServiceBindingOutput, ServiceInstanceOutput};
 
-pub const USER_AGENT: &str = "ROCS v0.1";
+pub const USER_AGENT: &str = "ROCS v0.2";
 const DEFAULT_API_VERSION: &str = "2.15";
 
 pub struct Options {
     pub json_output: bool,
+    pub curl_output: bool,
     pub synchronous: bool,
 }
 
@@ -28,6 +29,21 @@ pub fn catalog(
     let catalog = catalog_api
         .catalog_get(DEFAULT_API_VERSION)
         .expect("catalog request failed");
+
+    if options.curl_output {
+        println!(
+            "{}",
+            generate_curl_command(
+                "catalog".to_owned(),
+                "GET".to_owned(),
+                "".to_owned(),
+                false,
+                "".to_owned(),
+                "".to_owned()
+            )
+        );
+        return Ok(());
+    }
 
     match options.json_output {
         false => {
@@ -73,6 +89,22 @@ pub fn deprovision(
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
     let instance_id = matches.value_of("instance-id").unwrap().to_string();
+
+    if options.curl_output {
+        println!(
+            "{}",
+            generate_curl_command(
+                "service_instance".to_owned(),
+                "DELETE".to_owned(),
+                "".to_owned(),
+                options.synchronous,
+                instance_id,
+                "".to_owned()
+            )
+        );
+        return Ok(());
+    }
+
     let si_api = client.service_instances_api();
     si_api
         .service_instance_deprovision(
@@ -125,6 +157,21 @@ pub fn provision(
     provision_request.context = Some(json!(parse_parameters(context).unwrap()));
 
     let instance_id = Uuid::new_v4().to_hyphenated().to_string();
+
+    if options.curl_output {
+        println!(
+            "{}",
+            generate_curl_command(
+                "service_instance".to_owned(),
+                "PUT".to_owned(),
+                serde_json::to_string_pretty(&provision_request).unwrap(),
+                options.synchronous,
+                instance_id,
+                "".to_owned()
+            )
+        );
+        return Ok(());
+    }
 
     let _provision_response = si_api
         .service_instance_provision(
@@ -223,6 +270,21 @@ pub fn bind(
     binding_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
     binding_request.context = Some(json!(parse_parameters(context).unwrap()));
 
+    if options.curl_output {
+        println!(
+            "{}",
+            generate_curl_command(
+                "service_binding".to_owned(),
+                "PUT".to_owned(),
+                serde_json::to_string_pretty(&binding_request).unwrap(),
+                options.synchronous,
+                instance_id,
+                binding_id,
+            )
+        );
+        return Ok(());
+    }
+
     let _binding_response = binding_api.service_binding_binding(
         DEFAULT_API_VERSION,
         &*instance_id,
@@ -299,6 +361,21 @@ pub fn unbind(
     let instance_id = matches.value_of("instance-id").unwrap().to_string();
     let binding_id = matches.value_of("binding-id").unwrap().to_string();
 
+    if options.curl_output {
+        println!(
+            "{}",
+            generate_curl_command(
+                "service_binding".to_owned(),
+                "DELETE".to_owned(),
+                "".to_owned(),
+                options.synchronous,
+                instance_id,
+                binding_id
+            )
+        );
+        return Ok(());
+    }
+
     let _unbinding_response = binding_api
         .service_binding_unbinding(
             DEFAULT_API_VERSION,
@@ -323,6 +400,21 @@ pub fn creds(
 
     let instance_id = matches.value_of("instance-id").unwrap().to_string();
     let binding_id = matches.value_of("binding-id").unwrap().to_string();
+
+    if options.curl_output {
+        println!(
+            "{}",
+            generate_curl_command(
+                "service_binding".to_owned(),
+                "GET".to_owned(),
+                "".to_owned(),
+                options.synchronous,
+                instance_id,
+                binding_id
+            )
+        );
+        return Ok(());
+    }
 
     let provisioned_binding = binding_api
         .service_binding_get(
@@ -350,6 +442,50 @@ pub fn creds(
     };
 
     Ok(())
+}
+
+fn generate_curl_command(
+    object: String,
+    method: String,
+    body: String,
+    synchronous: bool,
+    sid: String,
+    bid: String,
+) -> String {
+    let sync_opt = if !synchronous {
+        "?accepts_incomplete=true"
+    } else {
+        ""
+    };
+
+    let request_body = if body != "" {
+        format!(" \\\n-d '{}'", body)
+    } else {
+        format!("")
+    };
+
+    let path = match object.as_str() {
+        "catalog" => format!("catalog"),
+        "service_instance" => format!("service_instances/{}", sid),
+        "service_binding" => format!("service_instances/{}/service_bindings/{}", sid, bid),
+        _ => {
+            println!("error generating path, object is invalid");
+            "".into()
+        }
+    };
+
+    let curl_command = format!(
+        "curl -X {method} -u {userpass} {url}/{version}/{path}{sync_opt}{body}",
+        userpass = "$ROCS_BROKER_USERNAME:$ROCS_BROKER_PASSWORD",
+        url = "$ROCS_BROKER_URL",
+        method = method,
+        version = "v2",
+        path = path,
+        sync_opt = sync_opt,
+        body = request_body,
+    );
+
+    String::from(curl_command)
 }
 
 fn find_service_plan_id(
