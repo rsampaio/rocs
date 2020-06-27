@@ -242,79 +242,105 @@ pub fn bind(
 ) -> Result<(), Box<dyn Error>> {
     let binding_api = client.service_bindings_api();
 
-    let binding_id = Uuid::new_v4().to_hyphenated().to_string();
+    let mut binding_id = Uuid::new_v4().to_hyphenated().to_string();
     let instance_id = matches.value_of("instance-id").unwrap().to_string();
 
-    let mut binding_request = ServiceBindingRequest::new("".into(), "".into());
-    let parameters = matches.values_of("parameters");
-    let context = matches.values_of("context");
+    // bindings
+    // if binding id is present, just fetch the id
+    if matches.is_present("binding-id") {
+        binding_id = matches.value_of("binding-id").unwrap().into();
+    } else {
+        let mut binding_request = ServiceBindingRequest::new("".into(), "".into());
+        let parameters = matches.values_of("parameters");
+        let context = matches.values_of("context");
 
-    // - fetch service_instance
-    //   - extract service_id
-    //   - extract plan_id
-    // - fetch catalog
-    //   - extract schemas
-    /*
-    match schemas {
-        Some(s) => match validate_schema(
-            s.service_binding.unwrap().create.unwrap(),
-            parameters.clone(),
-        ) {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        },
-        None => {}
-    }
-     */
+        // - fetch service_instance
+        //   - extract service_id
+        //   - extract plan_id
+        // - fetch catalog
+        //   - extract schemas
+        /*
+        match schemas {
+            Some(s) => match validate_schema(
+                s.service_binding.unwrap().create.unwrap(),
+                parameters.clone(),
+            ) {
+                Ok(_) => {}
+                Err(e) => return Err(e),
+            },
+            None => {}
+        }
+         */
 
-    binding_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
-    binding_request.context = Some(json!(parse_parameters(context).unwrap()));
+        binding_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
+        binding_request.context = Some(json!(parse_parameters(context).unwrap()));
 
-    if options.curl_output {
-        println!(
-            "{}",
-            generate_curl_command(
-                "service_binding".to_owned(),
-                "PUT".to_owned(),
-                serde_json::to_string_pretty(&binding_request).unwrap(),
-                options.synchronous,
-                instance_id,
-                binding_id,
-            )
-        );
-        return Ok(());
-    }
+        if options.curl_output {
+            println!(
+                "{}",
+                generate_curl_command(
+                    "service_binding".to_owned(),
+                    "PUT".to_owned(),
+                    serde_json::to_string_pretty(&binding_request).unwrap(),
+                    options.synchronous,
+                    instance_id,
+                    binding_id,
+                )
+            );
+            return Ok(());
+        }
 
-    let _binding_response = binding_api.service_binding_binding(
-        DEFAULT_API_VERSION,
-        &*instance_id,
-        &*binding_id,
-        binding_request,
-        USER_AGENT,
-        !options.synchronous,
-    );
-
-    if !options.synchronous {
-        loop {
-            let last_op = binding_api.service_binding_last_operation_get(
+        let binding_response = binding_api
+            .service_binding_binding(
                 DEFAULT_API_VERSION,
                 &*instance_id,
                 &*binding_id,
-                "", // service_id
-                "", // plan id
-                "", // operation
-            );
+                binding_request,
+                USER_AGENT,
+                !options.synchronous,
+            )
+            .expect("binding failed");
 
-            if let Ok(lo) = last_op {
-                match lo.state {
-                    rocl::models::State::InProgress => {
-                        thread::sleep(time::Duration::new(2, 0));
+        if options.synchronous || !matches.is_present("wait") {
+            match options.json_output {
+                true => {
+                    let mut binding_output = HashMap::new();
+                    binding_output.insert(binding_id, &binding_response);
+                    println!("{}", serde_json::to_string(&binding_output).unwrap());
+                }
+                false => {
+                    let mut table = Table::new();
+                    table.add_row(row!["Instance ID", "Binding ID"]);
+                    table.add_row(row![&*instance_id, &*binding_id]);
+                    table.printstd();
+                }
+            }
+            return Ok(());
+        }
+
+        if matches.is_present("wait") {
+            eprintln!("[INFO] waiting binding provisioning...");
+
+            loop {
+                let last_op = binding_api.service_binding_last_operation_get(
+                    DEFAULT_API_VERSION,
+                    &*instance_id,
+                    &*binding_id,
+                    "", // service_id
+                    "", // plan id
+                    "", // operation
+                );
+
+                if let Ok(lo) = last_op {
+                    match lo.state {
+                        rocl::models::State::InProgress => {
+                            thread::sleep(time::Duration::new(2, 0));
+                        }
+                        _ => break,
                     }
-                    _ => break,
                 }
             }
         }
-        println!("");
     }
 
     let provisioned_binding = binding_api
@@ -341,7 +367,7 @@ pub fn bind(
         }
         true => {
             let sb_out = ServiceBindingOutput {
-                service_binding_id: Some(instance_id),
+                service_binding_id: Some(binding_id),
                 service_binding_resource: Some(provisioned_binding),
             };
             println!("{}", serde_json::to_string(&sb_out).unwrap());
@@ -387,59 +413,6 @@ pub fn unbind(
             !options.synchronous,
         )
         .expect("service binding unbind failed");
-
-    Ok(())
-}
-
-pub fn creds(
-    matches: &clap::ArgMatches,
-    client: APIClient,
-    options: Options,
-) -> Result<(), Box<dyn Error>> {
-    let binding_api = client.service_bindings_api();
-
-    let instance_id = matches.value_of("instance-id").unwrap().to_string();
-    let binding_id = matches.value_of("binding-id").unwrap().to_string();
-
-    if options.curl_output {
-        println!(
-            "{}",
-            generate_curl_command(
-                "service_binding".to_owned(),
-                "GET".to_owned(),
-                "".to_owned(),
-                options.synchronous,
-                instance_id,
-                binding_id
-            )
-        );
-        return Ok(());
-    }
-
-    let provisioned_binding = binding_api
-        .service_binding_get(
-            DEFAULT_API_VERSION,
-            &*instance_id,
-            &*binding_id,
-            USER_AGENT,
-            "",
-            "",
-        )
-        .expect("service binding fetch failed");
-
-    match options.json_output {
-        false => {
-            let mut table = Table::new();
-            table.add_row(row!["Instance ID"]);
-            table.add_row(row![&*instance_id]);
-            table.add_row(row!["Binding ID"]);
-            table.add_row(row![&*binding_id]);
-            table.add_row(row!["Credentials"]);
-            table.add_row(row![serde_json::to_string_pretty(&provisioned_binding)?]);
-            table.printstd();
-        }
-        true => println!("{}", serde_json::to_string(&provisioned_binding).unwrap()),
-    };
 
     Ok(())
 }

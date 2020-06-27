@@ -46,6 +46,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .required(false),
         )
         .arg(
+            Arg::with_name("sync")
+                .help("Execute provisioning and binding synchronously")
+                .long("sync")
+                .takes_value(false)
+                .required(false),
+        )
+        .arg(
             Arg::with_name("curl")
                 .help("Prints cURL command")
                 .long("curl")
@@ -119,6 +126,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .required(true),
                 )
                 .arg(
+                    Arg::with_name("binding-id")
+                        .short("b")
+                        .long("binding")
+                        .takes_value(true)
+                        .help("binding ID to fetch if bindings are fetchable")
+                )
+                .arg(
                     Arg::with_name("parameters")
                         .short("P")
                         .long("params")
@@ -133,7 +147,14 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .multiple(true)
                         .takes_value(true)
                         .help("context to provision service bindings. ex: account_id=123 other=value"),
-                ),
+                )
+                .arg(
+                    Arg::with_name("wait")
+                        .short("w")
+                        .long("wait")
+                        .takes_value(false)
+                        .help("wait service binding provisioning to finish")
+                )
         )
         .subcommand(
             SubCommand::with_name("unbind")
@@ -159,27 +180,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("catalog")
                 .about("Catalog request")
                 .alias("cat"),
-        )
-        .subcommand(
-            SubCommand::with_name("credentials")
-                .alias("creds")
-                .about("Binding credentials")
-                .arg(
-                    Arg::with_name("binding-id")
-                        .short("b")
-                        .long("binding")
-                        .takes_value(true)
-                        .help("Binding ID to fetch credentials")
-                        .required(true),
-                )
-                .arg(
-                    Arg::with_name("instance-id")
-                        .short("i")
-                        .long("instance")
-                        .takes_value(true)
-                        .help("Instance ID to fetch credentials")
-                        .required(true),
-                ),
         )
         .get_matches();
 
@@ -218,11 +218,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         Some("bind") => cli::bind(matches.subcommand_matches("bind").unwrap(), client, options),
         Some("unbind") => cli::unbind(
             matches.subcommand_matches("unbind").unwrap(),
-            client,
-            options,
-        ),
-        Some("credentials") => cli::creds(
-            matches.subcommand_matches("credentials").unwrap(),
             client,
             options,
         ),
