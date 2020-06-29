@@ -106,9 +106,9 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("deprovision")
                 .about("Service Instance deprovisioning")
                 .arg(
-                    Arg::with_name("instance-id")
+                    Arg::with_name("instance")
                         .short("i")
-                        .long("instance-id")
+                        .long("instance")
                         .takes_value(true)
                         .required(true)
                         .help("service instance id to deprovision"),
@@ -118,7 +118,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("bind")
                 .about("Service Binding request")
                 .arg(
-                    Arg::with_name("instance-id")
+                    Arg::with_name("instance")
                         .short("i")
                         .long("instance")
                         .takes_value(true)
@@ -126,7 +126,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("binding-id")
+                    Arg::with_name("binding")
                         .short("b")
                         .long("binding")
                         .takes_value(true)
@@ -160,7 +160,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             SubCommand::with_name("unbind")
                 .about("Service Binding removal")
                 .arg(
-                    Arg::with_name("instance-id")
+                    Arg::with_name("instance")
                         .short("i")
                         .long("instance")
                         .takes_value(true)
@@ -168,7 +168,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("binding-id")
+                    Arg::with_name("binding")
                         .short("b")
                         .long("binding")
                         .takes_value(true)

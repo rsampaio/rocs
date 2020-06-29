@@ -87,7 +87,7 @@ pub fn deprovision(
     client: APIClient,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
-    let instance_id = matches.value_of("instance-id").unwrap().to_string();
+    let instance_id = matches.value_of("instance").unwrap().to_string();
 
     if options.curl_output {
         println!(
@@ -240,12 +240,12 @@ pub fn bind(
     let binding_api = client.service_bindings_api();
 
     let mut binding_id = Uuid::new_v4().to_hyphenated().to_string();
-    let instance_id = matches.value_of("instance-id").unwrap().to_string();
+    let instance_id = matches.value_of("instance").unwrap().to_string();
 
     // bindings
     // if binding id is present, just fetch the id
-    if matches.is_present("binding-id") {
-        binding_id = matches.value_of("binding-id").unwrap().into();
+    if matches.is_present("binding") {
+        binding_id = matches.value_of("binding").unwrap().into();
     } else {
         let mut binding_request = ServiceBindingRequest::new("".into(), "".into());
         let parameters = matches.values_of("parameters");
@@ -381,8 +381,8 @@ pub fn unbind(
 ) -> Result<(), Box<dyn Error>> {
     let binding_api = client.service_bindings_api();
 
-    let instance_id = matches.value_of("instance-id").unwrap().to_string();
-    let binding_id = matches.value_of("binding-id").unwrap().to_string();
+    let instance_id = matches.value_of("instance").unwrap().to_string();
+    let binding_id = matches.value_of("binding").unwrap().to_string();
 
     if options.curl_output {
         println!(
