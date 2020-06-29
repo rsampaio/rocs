@@ -2,7 +2,6 @@ use prettytable::{format, Table};
 use rocl::apis::client::APIClient;
 use rocl::models::{Schemas, ServiceBindingRequest, ServiceInstanceProvisionRequest};
 use serde_json::json;
-use spinners::{Spinner, Spinners};
 use std::collections::HashMap;
 use std::error::Error;
 use std::{thread, time};
@@ -184,7 +183,7 @@ pub fn provision(
         .expect("provision request failed");
 
     if matches.is_present("wait") {
-        let sp = Spinner::new(Spinners::Point, "provisioning service instance".to_string());
+        eprintln!("[INFO] waiting service instance provisioning...");
 
         loop {
             let last_op = si_api.service_instance_last_operation_get(
@@ -204,8 +203,6 @@ pub fn provision(
                 }
             }
         }
-        println!("");
-        sp.stop();
     }
 
     let provisioned_instance = si_api
