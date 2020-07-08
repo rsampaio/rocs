@@ -13,6 +13,8 @@ use models::{ServiceBindingOutput, ServiceInstanceOutput};
 pub const USER_AGENT: &str = "ROCS v0.2";
 const DEFAULT_API_VERSION: &str = "2.15";
 
+pub const POOL_INTERVAL: u64 = 5;
+
 pub struct Options {
     pub json_output: bool,
     pub curl_output: bool,
@@ -183,9 +185,14 @@ pub fn provision(
         .expect("provision request failed");
 
     if matches.is_present("wait") {
-        eprintln!("[INFO] waiting service instance provisioning...");
+        eprintln!(
+            "[INFO] waiting service instance {} provisioning",
+            instance_id
+        );
 
         loop {
+            thread::sleep(time::Duration::new(POOL_INTERVAL, 0));
+
             let last_op = si_api.service_instance_last_operation_get(
                 DEFAULT_API_VERSION,
                 &*instance_id,
@@ -196,9 +203,7 @@ pub fn provision(
 
             if let Ok(lo) = last_op {
                 match lo.state {
-                    rocl::models::State::InProgress => {
-                        thread::sleep(time::Duration::new(2, 0));
-                    }
+                    rocl::models::State::InProgress => continue,
                     _ => break,
                 }
             }
@@ -316,9 +321,11 @@ pub fn bind(
         }
 
         if matches.is_present("wait") {
-            eprintln!("[INFO] waiting binding provisioning...");
+            eprintln!("[INFO] waiting binding {} provisioning", binding_id);
 
             loop {
+                thread::sleep(time::Duration::new(POOL_INTERVAL, 0));
+
                 let last_op = binding_api.service_binding_last_operation_get(
                     DEFAULT_API_VERSION,
                     &*instance_id,
@@ -330,9 +337,7 @@ pub fn bind(
 
                 if let Ok(lo) = last_op {
                     match lo.state {
-                        rocl::models::State::InProgress => {
-                            thread::sleep(time::Duration::new(2, 0));
-                        }
+                        rocl::models::State::InProgress => continue,
                         _ => break,
                     }
                 }
