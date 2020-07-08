@@ -2,7 +2,7 @@ extern crate clap;
 extern crate rocl;
 extern crate rocs;
 
-use clap::{App, AppSettings, Arg, SubCommand};
+use clap::{crate_authors, crate_version, App, AppSettings, Arg, SubCommand};
 use rocl::apis::client::APIClient;
 use rocl::apis::configuration::Configuration;
 use rocs::cli;
@@ -10,8 +10,8 @@ use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("rocs")
-        .version("0.1")
-        .author("Rodrigo Vaz")
+        .version(crate_version!())
+        .author(crate_authors!())
         .about("Rust OSB Client 'Super'")
         .setting(AppSettings::SubcommandRequiredElseHelp)
         .arg(
