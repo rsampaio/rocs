@@ -503,7 +503,7 @@ fn parse_parameters(params: Option<clap::Values>) -> Result<HashMap<String, Stri
     match params {
         Some(param) => {
             for kv in param {
-                let keyvalue: Vec<&str> = kv.split('=').collect();
+                let keyvalue: Vec<&str> = kv.splitn(2, '=').collect();
                 if keyvalue.len() < 2 {
                     println!("{} does not match format key=value, ignoring", kv);
                     continue;
