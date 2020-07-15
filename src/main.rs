@@ -5,7 +5,7 @@ extern crate rocs;
 use clap::{crate_authors, crate_version, App, AppSettings, Arg, SubCommand};
 use rocl::apis::client::APIClient;
 use rocl::apis::configuration::Configuration;
-use rocs::cli;
+use rocs::{cli, ext};
 use std::error::Error;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -193,6 +193,36 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .required(true),
                 )
         )
+        .subcommand(
+            SubCommand::with_name("extension")
+                .about("Extension interaction")
+                .alias("ext")
+                .arg(
+                    Arg::with_name("instance")
+                        .short("i")
+                        .help("Instance ID to access extension")
+                        .takes_value(true)
+                )
+                .arg(
+                    Arg::with_name("operation")
+                        .short("o")
+                        .help("Operation to perform (HTTP Method)")
+                        .possible_values(&["get", "post", "put", "patch", "delete"])
+                        .takes_value(true)
+                )
+                .arg(
+                    Arg::with_name("path")
+                        .short("p")
+                        .help("Path to perform operation (HTTP Method)")
+                        .takes_value(true)
+                )
+                .arg(
+                    Arg::with_name("list")
+                        .short("l")
+                        .help("List paths and operations of available extensions")
+                        .takes_value(true)
+                )
+        )
         .get_matches();
 
     let mut cfg = Configuration::new();
@@ -234,6 +264,12 @@ fn main() -> Result<(), Box<dyn Error>> {
             options,
         ),
         Some("info") => cli::info(matches.subcommand_matches("info").unwrap(), client, options),
+        Some("extension") => ext::client(
+            matches.subcommand_matches("extension").unwrap(),
+            client,
+            options,
+            &matches,
+        ),
         _ => Err(Box::from("unknown command")),
     }
 }

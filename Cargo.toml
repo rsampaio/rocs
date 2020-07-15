@@ -18,5 +18,7 @@ dirs = "2.0.2"
 rusqlite = "0.21.0"
 rocl = "0.0.5"
 valico = "3.2.0"
+openapi = "0.1.5"
+reqwest = "0.9"
 
 [dev-dependencies]
