@@ -21,6 +21,40 @@ pub struct Options {
     pub synchronous: bool,
 }
 
+pub fn info(
+    args: &clap::ArgMatches,
+    client: APIClient,
+    options: Options,
+) -> Result<(), Box<dyn Error>> {
+    let instance_id: String = args.value_of("instance").unwrap().to_owned();
+
+    let si_api = client.service_instances_api();
+    let si = si_api
+        .service_instance_get(DEFAULT_API_VERSION, &*instance_id, USER_AGENT, "", "")
+        .expect("failed to retrieve service instance information");
+
+    match options.json_output {
+        false => {
+            let mut service_instance_table = Table::new();
+            service_instance_table.add_row(row!["ID", "Service ID", "Plans ID", "Dashboard"]);
+            service_instance_table.add_row(row![
+                instance_id,
+                si.service_id.unwrap(),
+                si.plan_id.unwrap(),
+                si.dashboard_url.unwrap()
+            ]);
+            service_instance_table.printstd();
+        }
+        true => {
+            let mut instance_output = HashMap::new();
+            instance_output.insert(instance_id, si);
+            println!("{}", serde_json::to_string(&instance_output).unwrap());
+        }
+    };
+
+    Ok(())
+}
+
 pub fn catalog(
     _: &clap::ArgMatches,
     client: APIClient,

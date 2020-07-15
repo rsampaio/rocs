@@ -181,6 +181,18 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .about("Catalog request")
                 .alias("cat"),
         )
+        .subcommand(
+            SubCommand::with_name("info")
+                .about("Fetch Service Instances information")
+                .arg(
+                    Arg::with_name("instance")
+                        .short("i")
+                        .long("instance")
+                        .takes_value(true)
+                        .help("instance ID to fetch information")
+                        .required(true),
+                )
+        )
         .get_matches();
 
     let mut cfg = Configuration::new();
@@ -221,6 +233,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             client,
             options,
         ),
+        Some("info") => cli::info(matches.subcommand_matches("info").unwrap(), client, options),
         _ => Err(Box::from("unknown command")),
     }
 }
