@@ -1,5 +1,6 @@
 use cli;
-use openapi;
+use openapiv3::OpenAPI;
+use openapiv3::ReferenceOr::Item;
 use reqwest;
 use rocl::apis::client::APIClient;
 use std::error::Error;
@@ -17,7 +18,7 @@ pub fn client(
     let broker_password: String = global_matches.value_of("broker_pass").unwrap().to_owned();
 
     let instance_id: String = args.value_of("instance").unwrap().to_owned();
-    let path: String = args.value_of("path").unwrap().to_owned();
+    let extension_id: String = args.value_of("id").unwrap().to_owned();
 
     let ext_client = reqwest::Client::new();
 
@@ -43,7 +44,7 @@ pub fn client(
         if s.id == service_id {
             if let Some(extensions) = &s.extensions {
                 for p in extensions.iter() {
-                    if p.path == path {
+                    if p.id == extension_id {
                         extension_uri = format!("{}{}", base_path, p.openapi_url);
                         break 'extension_search;
                     }
@@ -62,9 +63,14 @@ pub fn client(
         .send()?
         .text()?;
 
-    let schema = openapi::from_reader(schema_text.as_bytes())?;
+    let openapi: OpenAPI = serde_yaml::from_str(&*schema_text)?;
 
-    println!("{:#?}", schema.paths.contains_key(&*path));
+    match &openapi.paths[&*path] {
+        Item(p) => {
+            println!("{:#?}", p.get.as_ref().unwrap());
+        }
+        _ => println!("path not found"),
+    }
 
     Ok(())
 }

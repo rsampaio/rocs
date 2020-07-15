@@ -204,6 +204,12 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .takes_value(true)
                 )
                 .arg(
+                    Arg::with_name("id")
+                        .short("I")
+                        .help("Instance ID to access extension")
+                        .takes_value(true)
+                )
+                .arg(
                     Arg::with_name("operation")
                         .short("o")
                         .help("Operation to perform (HTTP Method)")

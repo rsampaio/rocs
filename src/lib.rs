@@ -3,7 +3,7 @@ extern crate serde_derive;
 #[macro_use]
 extern crate prettytable;
 extern crate dirs;
-extern crate openapi;
+extern crate openapiv3;
 extern crate reqwest;
 extern crate rocl;
 extern crate rusqlite;
