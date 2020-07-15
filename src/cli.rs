@@ -11,8 +11,7 @@ use valico::json_schema;
 use models::{ServiceBindingOutput, ServiceInstanceOutput};
 
 pub const USER_AGENT: &str = "ROCS v0.2";
-const DEFAULT_API_VERSION: &str = "2.15";
-
+pub const DEFAULT_API_VERSION: &str = "2.15";
 pub const POOL_INTERVAL: u64 = 5;
 
 pub struct Options {
@@ -97,12 +96,14 @@ pub fn catalog(
                 }
 
                 if let Some(extensions) = &s.extensions {
+                    extensions_table.add_row(row!["ID", "Path"]);
+
                     for p in extensions.iter() {
-                        extensions_table.add_row(row![p.id]);
+                        extensions_table.add_row(row![p.id, p.path]);
                     }
                 }
 
-                services_table.add_row(row![s.name, s.description, plans_table]);
+                services_table.add_row(row![s.name, s.description, plans_table, extensions_table]);
             }
 
             services_table.printstd();
@@ -285,47 +286,67 @@ pub fn bind(
     // if binding id is present, just fetch the id
     if matches.is_present("binding") {
         binding_id = matches.value_of("binding").unwrap().into();
-    } else {
-        let mut binding_request = ServiceBindingRequest::new("".into(), "".into());
-        let parameters = matches.values_of("parameters");
-        let context = matches.values_of("context");
+    }
 
-        // - fetch service_instance
-        //   - extract service_id
-        //   - extract plan_id
-        // - fetch catalog
-        //   - extract schemas
-        /*
-        match schemas {
-            Some(s) => match validate_schema(
-                s.service_binding.unwrap().create.unwrap(),
-                parameters.clone(),
-            ) {
-                Ok(_) => {}
-                Err(e) => return Err(e),
-            },
-            None => {}
+    let mut binding_request = ServiceBindingRequest::new("".into(), "".into());
+    let parameters = matches.values_of("parameters");
+    let context = matches.values_of("context");
+
+    // - fetch service_instance
+    //   - extract service_id
+    //   - extract plan_id
+    // - fetch catalog
+    //   - extract schemas
+    /*
+    match schemas {
+        Some(s) => match validate_schema(
+            s.service_binding.unwrap().create.unwrap(),
+            parameters.clone(),
+        ) {
+            Ok(_) => {}
+            Err(e) => return Err(e),
+        },
+        None => {}
+    }
+     */
+
+    binding_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
+    binding_request.context = Some(json!(parse_parameters(context).unwrap()));
+
+    if options.curl_output {
+        match matches.is_present("binding") {
+            false => {
+                println!(
+                    "{}",
+                    generate_curl_command(
+                        "service_binding".to_owned(),
+                        "PUT".to_owned(),
+                        serde_json::to_string_pretty(&binding_request).unwrap(),
+                        options.synchronous,
+                        instance_id,
+                        binding_id,
+                    )
+                );
+            }
+            true => {
+                println!(
+                    "{}",
+                    generate_curl_command(
+                        "service_binding".to_owned(),
+                        "GET".to_owned(),
+                        serde_json::to_string_pretty(&binding_request).unwrap(),
+                        options.synchronous,
+                        instance_id,
+                        binding_id,
+                    )
+                );
+            }
         }
-         */
 
-        binding_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
-        binding_request.context = Some(json!(parse_parameters(context).unwrap()));
+        return Ok(());
+    }
 
-        if options.curl_output {
-            println!(
-                "{}",
-                generate_curl_command(
-                    "service_binding".to_owned(),
-                    "PUT".to_owned(),
-                    serde_json::to_string_pretty(&binding_request).unwrap(),
-                    options.synchronous,
-                    instance_id,
-                    binding_id,
-                )
-            );
-            return Ok(());
-        }
-
+    if !matches.is_present("binding") {
         let binding_response = binding_api
             .service_binding_binding(
                 DEFAULT_API_VERSION,
