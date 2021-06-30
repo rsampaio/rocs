@@ -4,19 +4,27 @@ version = "1.0.17-alpha.0"
 authors = ["OpenAPI Generator team and contributors"]
 description = "Rust OSB client"
 license = "MIT"
+edition = "2018"
 
 [dependencies]
 serde = "^1.0"
 serde_derive = "^1.0"
 serde_json = "^1.0"
+serde_yaml = "^0.8"
 clap = "2.33.0"
 prettytable-rs = "^0.8"
 uuid = { version = "0.8.1", features = ["v4"] }
-spinners = "1.2.0"
 time = "0.1.38"
 dirs = "2.0.2"
 rusqlite = "0.21.0"
-rocl = "0.0.5"
+rocl = "0.0.7"
 valico = "3.2.0"
+openapiv3 = "0.3"
+tokio = { version = "1", features = ["full"] }
+
+[dependencies.reqwest]
+version = "^0.11"
+default-features = false
+features = ["json", "multipart"]
 
 [dev-dependencies]

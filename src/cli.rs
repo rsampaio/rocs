@@ -1,14 +1,30 @@
+use clap::ArgMatches;
 use prettytable::{format, Table};
-use rocl::apis::client::APIClient;
-use rocl::models::{Schemas, ServiceBindingRequest, ServiceInstanceProvisionRequest};
+use rocl::{
+    apis::{
+        catalog_api::catalog_get,
+        configuration::Configuration,
+        service_bindings_api::{
+            service_binding_binding, service_binding_get, service_binding_last_operation_get,
+            service_binding_unbinding,
+        },
+        service_instances_api::{
+            service_instance_deprovision, service_instance_get,
+            service_instance_last_operation_get, service_instance_provision,
+        },
+    },
+    models::{
+        last_operation_resource::State, Schemas, ServiceBindingRequest,
+        ServiceInstanceProvisionRequestBody,
+    },
+};
 use serde_json::json;
-use std::collections::HashMap;
-use std::error::Error;
+use std::{collections::HashMap, error::Error};
 use std::{thread, time};
 use uuid::Uuid;
 use valico::json_schema;
 
-use models::{ServiceBindingOutput, ServiceInstanceOutput};
+use crate::models::{ServiceBindingOutput, ServiceInstanceOutput};
 
 pub const USER_AGENT: &str = "ROCS v0.2";
 pub const DEFAULT_API_VERSION: &str = "2.15";
@@ -20,17 +36,38 @@ pub struct Options {
     pub synchronous: bool,
 }
 
-pub fn info(
-    args: &clap::ArgMatches,
-    client: APIClient,
+pub async fn info(
+    args: &ArgMatches<'_>,
+    config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
     let instance_id: String = args.value_of("instance").unwrap().to_owned();
 
-    let si_api = client.service_instances_api();
-    let si = si_api
-        .service_instance_get(DEFAULT_API_VERSION, &*instance_id, USER_AGENT, "", "")
-        .expect("failed to retrieve service instance information");
+    if options.curl_output {
+        println!(
+            "{}",
+            generate_curl_command(
+                "service_instance".to_owned(),
+                "GET".to_owned(),
+                "".to_owned(),
+                false,
+                instance_id,
+                "".to_owned()
+            )
+        );
+        return Ok(());
+    }
+
+    let si = service_instance_get(
+        &config,
+        DEFAULT_API_VERSION,
+        &*instance_id,
+        Some(USER_AGENT),
+        None,
+        None,
+    )
+    .await
+    .expect("failed to fetch service instance");
 
     match options.json_output {
         false => {
@@ -54,15 +91,14 @@ pub fn info(
     Ok(())
 }
 
-pub fn catalog(
-    _: &clap::ArgMatches,
-    client: APIClient,
+pub async fn catalog(
+    _: &ArgMatches<'_>,
+    config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
-    let catalog_api = client.catalog_api();
-    let catalog = catalog_api
-        .catalog_get(DEFAULT_API_VERSION)
-        .expect("catalog request failed");
+    let catalog = catalog_get(&config, DEFAULT_API_VERSION)
+        .await
+        .expect("failed to get catalog");
 
     if options.curl_output {
         println!(
@@ -87,7 +123,7 @@ pub fn catalog(
 
             for s in catalog.services.unwrap().iter() {
                 let mut plans_table = Table::new();
-                let mut extensions_table = Table::new();
+                // let mut extensions_table = Table::new();
 
                 plans_table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
 
@@ -95,6 +131,7 @@ pub fn catalog(
                     plans_table.add_row(row![p.name]);
                 }
 
+                /*
                 if let Some(extensions) = &s.extensions {
                     extensions_table.add_row(row!["ID", "Path"]);
 
@@ -102,8 +139,9 @@ pub fn catalog(
                         extensions_table.add_row(row![p.id, p.path]);
                     }
                 }
+                 */
 
-                services_table.add_row(row![s.name, s.description, plans_table, extensions_table]);
+                services_table.add_row(row![s.name, s.description, plans_table]);
             }
 
             services_table.printstd();
@@ -119,9 +157,9 @@ pub fn catalog(
     Ok(())
 }
 
-pub fn deprovision(
-    matches: &clap::ArgMatches,
-    client: APIClient,
+pub async fn deprovision(
+    matches: &ArgMatches<'_>,
+    config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
     let instance_id = matches.value_of("instance").unwrap().to_string();
@@ -141,34 +179,33 @@ pub fn deprovision(
         return Ok(());
     }
 
-    let si_api = client.service_instances_api();
-    si_api
-        .service_instance_deprovision(
-            DEFAULT_API_VERSION,
-            &*instance_id,
-            "",
-            "",
-            USER_AGENT,
-            !options.synchronous,
-        )
-        .expect("deprovisioning request failed");
+    service_instance_deprovision(
+        &config,
+        DEFAULT_API_VERSION,
+        &*instance_id,
+        "",
+        "",
+        Some(USER_AGENT),
+        Some(!options.synchronous),
+    )
+    .await
+    .expect("deprovisioning request failed");
     Ok(())
 }
 
-pub fn provision(
-    matches: &clap::ArgMatches,
-    client: APIClient,
+pub async fn provision(
+    matches: &ArgMatches<'_>,
+    config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
     let service = matches.value_of("service").unwrap().to_string();
     let plan = matches.value_of("plan").unwrap().to_string();
 
-    let si_api = client.service_instances_api();
+    let (service_id, plan_id, schemas) = find_service_plan_id(config.clone(), service, plan)
+        .await
+        .expect("service or plan id not found");
 
-    let (service_id, plan_id, schemas) =
-        find_service_plan_id(&client, service, plan).expect("service or plan id not found");
-
-    let mut provision_request = ServiceInstanceProvisionRequest::new(
+    let mut provision_request = ServiceInstanceProvisionRequestBody::new(
         service_id.clone(),
         plan_id.clone(),
         String::from(""),
@@ -178,16 +215,7 @@ pub fn provision(
     let parameters = matches.values_of("parameters");
     let context = matches.values_of("context");
 
-    match schemas {
-        Some(s) => match validate_schema(
-            s.service_instance.unwrap().create.unwrap(),
-            parameters.clone(),
-        ) {
-            Ok(_) => {}
-            Err(e) => return Err(e),
-        },
-        None => {}
-    }
+    //validate_service_schema(schemas, parameters.clone());
 
     provision_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
     provision_request.context = Some(json!(parse_parameters(context).unwrap()));
@@ -209,15 +237,16 @@ pub fn provision(
         return Ok(());
     }
 
-    let _provision_response = si_api
-        .service_instance_provision(
-            DEFAULT_API_VERSION,
-            &*instance_id, // from String to &str
-            provision_request,
-            USER_AGENT,
-            !options.synchronous, // Accepts-incomplete
-        )
-        .expect("provision request failed");
+    let _provision_response = service_instance_provision(
+        &config,
+        DEFAULT_API_VERSION,
+        &*instance_id, // from String to &str
+        provision_request,
+        Some(USER_AGENT),
+        Some(!options.synchronous), // Accepts-incomplete
+    )
+    .await
+    .expect("provision request failed");
 
     if matches.is_present("wait") {
         eprintln!(
@@ -228,26 +257,34 @@ pub fn provision(
         loop {
             thread::sleep(time::Duration::new(POOL_INTERVAL, 0));
 
-            let last_op = si_api.service_instance_last_operation_get(
+            let last_op = service_instance_last_operation_get(
+                &config,
                 DEFAULT_API_VERSION,
                 &*instance_id,
-                &*service_id, // service_id
-                &*plan_id,    // plan id
-                "",           // operation
-            );
+                Some(&*service_id), // service_id
+                Some(&*plan_id),    // plan id
+                None,               // operation
+            )
+            .await
+            .expect("failed to fetch last operation");
 
-            if let Ok(lo) = last_op {
-                match lo.state {
-                    rocl::models::State::InProgress => continue,
-                    _ => break,
-                }
+            match last_op.state {
+                State::InProgress => continue,
+                _ => break,
             }
         }
     }
 
-    let provisioned_instance = si_api
-        .service_instance_get(DEFAULT_API_VERSION, &*instance_id, USER_AGENT, "", "")
-        .expect("service instance fetch failed");
+    let provisioned_instance = service_instance_get(
+        &config,
+        DEFAULT_API_VERSION,
+        &*instance_id,
+        Some(USER_AGENT),
+        None,
+        None,
+    )
+    .await
+    .expect("service instance fetch failed");
 
     match options.json_output {
         false => {
@@ -272,13 +309,11 @@ pub fn provision(
     Ok(())
 }
 
-pub fn bind(
-    matches: &clap::ArgMatches,
-    client: APIClient,
+pub async fn bind(
+    matches: &ArgMatches<'_>,
+    config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
-    let binding_api = client.service_bindings_api();
-
     let mut binding_id = Uuid::new_v4().to_hyphenated().to_string();
     let instance_id = matches.value_of("instance").unwrap().to_string();
 
@@ -343,20 +378,17 @@ pub fn bind(
             }
         }
 
-        return Ok(());
-    }
-
-    if !matches.is_present("binding") {
-        let binding_response = binding_api
-            .service_binding_binding(
-                DEFAULT_API_VERSION,
-                &*instance_id,
-                &*binding_id,
-                binding_request,
-                USER_AGENT,
-                !options.synchronous,
-            )
-            .expect("binding failed");
+        let binding_response = service_binding_binding(
+            &config,
+            DEFAULT_API_VERSION,
+            &*instance_id,
+            &*binding_id,
+            binding_request,
+            Some(USER_AGENT),
+            Some(!options.synchronous),
+        )
+        .await
+        .expect("binding failed");
 
         if options.synchronous || !matches.is_present("wait") {
             match options.json_output {
@@ -381,35 +413,37 @@ pub fn bind(
             loop {
                 thread::sleep(time::Duration::new(POOL_INTERVAL, 0));
 
-                let last_op = binding_api.service_binding_last_operation_get(
+                let last_op = service_binding_last_operation_get(
+                    &config,
                     DEFAULT_API_VERSION,
                     &*instance_id,
                     &*binding_id,
-                    "", // service_id
-                    "", // plan id
-                    "", // operation
-                );
+                    None, // service_id
+                    None, // plan id
+                    None, // operation
+                )
+                .await
+                .expect("failed to get binding last operation");
 
-                if let Ok(lo) = last_op {
-                    match lo.state {
-                        rocl::models::State::InProgress => continue,
-                        _ => break,
-                    }
+                match last_op.state {
+                    State::InProgress => continue,
+                    _ => break,
                 }
             }
         }
     }
 
-    let provisioned_binding = binding_api
-        .service_binding_get(
-            DEFAULT_API_VERSION,
-            &*instance_id,
-            &*binding_id,
-            USER_AGENT,
-            "",
-            "",
-        )
-        .expect("service binding fetch failed");
+    let provisioned_binding = service_binding_get(
+        &config,
+        DEFAULT_API_VERSION,
+        &*instance_id,
+        &*binding_id,
+        Some(USER_AGENT),
+        None,
+        None,
+    )
+    .await
+    .expect("service binding fetch failed");
 
     match options.json_output {
         false => {
@@ -434,13 +468,11 @@ pub fn bind(
     Ok(())
 }
 
-pub fn unbind(
-    matches: &clap::ArgMatches,
-    client: APIClient,
+pub async fn unbind(
+    matches: &ArgMatches<'_>,
+    config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
-    let binding_api = client.service_bindings_api();
-
     let instance_id = matches.value_of("instance").unwrap().to_string();
     let binding_id = matches.value_of("binding").unwrap().to_string();
 
@@ -459,17 +491,18 @@ pub fn unbind(
         return Ok(());
     }
 
-    let _unbinding_response = binding_api
-        .service_binding_unbinding(
-            DEFAULT_API_VERSION,
-            &*instance_id,
-            &*binding_id,
-            "", // service_id
-            "", // plan_id
-            USER_AGENT,
-            !options.synchronous,
-        )
-        .expect("service binding unbind failed");
+    let _unbinding_response = service_binding_unbinding(
+        &config,
+        DEFAULT_API_VERSION,
+        &*instance_id,
+        &*binding_id,
+        "", // service_id
+        "", // plan_id
+        Some(USER_AGENT),
+        Some(!options.synchronous),
+    )
+    .await
+    .expect("service binding unbind failed");
 
     Ok(())
 }
@@ -505,7 +538,7 @@ fn generate_curl_command(
     };
 
     let curl_command = format!(
-        "curl -X {method} -u {userpass} {url}/{version}/{path}{sync_opt}{body}",
+        "curl -H 'Content-type: application/json' -H 'X-Broker-API-Version: 2.16' -X {method} -u {userpass} {url}/{version}/{path}{sync_opt}{body}",
         userpass = "$ROCS_BROKER_USERNAME:$ROCS_BROKER_PASSWORD",
         url = "$ROCS_BROKER_URL",
         method = method,
@@ -518,19 +551,18 @@ fn generate_curl_command(
     String::from(curl_command)
 }
 
-fn find_service_plan_id(
-    client: &APIClient,
+async fn find_service_plan_id(
+    config: Configuration,
     service: String,
     plan: String,
-) -> Result<(String, String, Option<Schemas>), &'static str> {
-    let si_api = client.catalog_api();
-    let catalog = si_api
-        .catalog_get(DEFAULT_API_VERSION)
+) -> Result<(String, String, Schemas), &'static str> {
+    let catalog = catalog_get(&config, DEFAULT_API_VERSION)
+        .await
         .expect("failed to fetch catalog");
 
     let mut service_id = String::from("");
     let mut plan_id = String::from("");
-    let mut schemas = None;
+    let mut schemas: Schemas = Schemas::new();
 
     'outer: for s in catalog.services.unwrap() {
         if s.name == service {
@@ -538,7 +570,7 @@ fn find_service_plan_id(
             for p in s.plans {
                 if p.name == plan {
                     plan_id = p.id;
-                    schemas = p.schemas;
+                    //schemas = *p.schemas.unwrap();
                     break 'outer;
                 }
             }
@@ -552,7 +584,9 @@ fn find_service_plan_id(
     Ok((service_id, plan_id, schemas))
 }
 
-fn parse_parameters(params: Option<clap::Values>) -> Result<HashMap<String, String>, &'static str> {
+pub fn parse_parameters(
+    params: Option<clap::Values>,
+) -> Result<HashMap<String, String>, &'static str> {
     let mut parsed_params: HashMap<String, String> = HashMap::new();
 
     match params {
@@ -571,14 +605,23 @@ fn parse_parameters(params: Option<clap::Values>) -> Result<HashMap<String, Stri
     Ok(parsed_params)
 }
 
-fn validate_schema(
-    schema: rocl::models::SchemaParameters,
+fn validate_service_schema(
+    schema: Schemas,
     parameters: Option<clap::Values>,
 ) -> Result<(), Box<dyn Error>> {
     let mut scope = json_schema::Scope::new();
 
     let schema = scope
-        .compile_and_return(schema.parameters.unwrap(), false)
+        .compile_and_return(
+            schema
+                .service_instance
+                .unwrap()
+                .create
+                .unwrap()
+                .parameters
+                .unwrap(),
+            false,
+        )
         .unwrap();
 
     let validation = schema.validate(&json!(parse_parameters(parameters).unwrap()));
