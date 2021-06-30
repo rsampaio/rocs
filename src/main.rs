@@ -3,12 +3,13 @@ extern crate rocl;
 extern crate rocs;
 
 use clap::{crate_authors, crate_version, App, AppSettings, Arg, SubCommand};
-use rocl::apis::client::APIClient;
 use rocl::apis::configuration::Configuration;
-use rocs::{cli, ext};
+use rocs::cli;
 use std::error::Error;
+use tokio;
 
-fn main() -> Result<(), Box<dyn Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn Error>> {
     let matches = App::new("rocs")
         .version(crate_version!())
         .author(crate_authors!())
@@ -202,31 +203,40 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .short("i")
                         .help("Instance ID to access extension")
                         .takes_value(true)
+                        .required(true)
                 )
                 .arg(
                     Arg::with_name("id")
                         .short("I")
-                        .help("Instance ID to access extension")
+                        .help("Extension ID")
                         .takes_value(true)
+                        .required(true)
                 )
                 .arg(
                     Arg::with_name("operation")
                         .short("o")
-                        .help("Operation to perform (HTTP Method)")
-                        .possible_values(&["get", "post", "put", "patch", "delete"])
+                        .help("Operation to perform")
                         .takes_value(true)
+                        .required_unless("list")
                 )
                 .arg(
-                    Arg::with_name("path")
-                        .short("p")
-                        .help("Path to perform operation (HTTP Method)")
+                    Arg::with_name("parameters")
+                        .short("P")
+                        .help("All parameters required for this action including path parameters")
+                        .takes_value(true)
+                        .multiple(true)
+                )
+                .arg(
+                    Arg::with_name("body")
+                        .short("B")
+                        .help("Request body with required fields")
                         .takes_value(true)
                 )
                 .arg(
                     Arg::with_name("list")
                         .short("l")
-                        .help("List paths and operations of available extensions")
-                        .takes_value(true)
+                        .help("List operations and parameters available for an extension")
+                        .takes_value(false)
                 )
         )
         .get_matches();
@@ -245,37 +255,37 @@ fn main() -> Result<(), Box<dyn Error>> {
         synchronous: matches.is_present("sync"),
     };
 
-    let client = APIClient::new(cfg);
-
     match matches.subcommand_name() {
-        Some("catalog") => cli::catalog(
-            matches.subcommand_matches("catalog").unwrap(),
-            client,
-            options,
-        ),
-        Some("provision") => cli::provision(
-            matches.subcommand_matches("provision").unwrap(),
-            client,
-            options,
-        ),
-        Some("deprovision") => cli::deprovision(
-            matches.subcommand_matches("deprovision").unwrap(),
-            client,
-            options,
-        ),
-        Some("bind") => cli::bind(matches.subcommand_matches("bind").unwrap(), client, options),
-        Some("unbind") => cli::unbind(
-            matches.subcommand_matches("unbind").unwrap(),
-            client,
-            options,
-        ),
-        Some("info") => cli::info(matches.subcommand_matches("info").unwrap(), client, options),
-        Some("extension") => ext::client(
+        Some("catalog") => {
+            cli::catalog(matches.subcommand_matches("catalog").unwrap(), cfg, options).await
+        }
+        Some("provision") => {
+            cli::provision(
+                matches.subcommand_matches("provision").unwrap(),
+                cfg,
+                options,
+            )
+            .await
+        }
+        Some("deprovision") => {
+            cli::deprovision(
+                matches.subcommand_matches("deprovision").unwrap(),
+                cfg,
+                options,
+            )
+            .await
+        }
+        Some("bind") => cli::bind(matches.subcommand_matches("bind").unwrap(), cfg, options).await,
+        Some("unbind") => {
+            cli::unbind(matches.subcommand_matches("unbind").unwrap(), cfg, options).await
+        }
+        Some("info") => cli::info(matches.subcommand_matches("info").unwrap(), cfg, options).await,
+        /*Some("extension") => ext::command(
             matches.subcommand_matches("extension").unwrap(),
             client,
             options,
             &matches,
-        ),
+        ),*/
         _ => Err(Box::from("unknown command")),
     }
 }
