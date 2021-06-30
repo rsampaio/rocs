@@ -358,8 +358,8 @@ pub async fn bind(
                         "PUT".to_owned(),
                         serde_json::to_string_pretty(&binding_request).unwrap(),
                         options.synchronous,
-                        instance_id,
-                        binding_id,
+                        instance_id.clone(),
+                        binding_id.clone(),
                     )
                 );
             }
@@ -371,8 +371,8 @@ pub async fn bind(
                         "GET".to_owned(),
                         serde_json::to_string_pretty(&binding_request).unwrap(),
                         options.synchronous,
-                        instance_id,
-                        binding_id,
+                        instance_id.clone(),
+                        binding_id.clone(),
                     )
                 );
             }
