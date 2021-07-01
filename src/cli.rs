@@ -163,6 +163,8 @@ pub async fn deprovision(
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
     let instance_id = matches.value_of("instance").unwrap().to_string();
+    let plan_id = matches.value_of("plan").unwrap_or("ignore").to_string();
+    let service_id = matches.value_of("service").unwrap_or("ignore").to_string();
 
     if options.curl_output {
         println!(
@@ -183,8 +185,8 @@ pub async fn deprovision(
         &config,
         DEFAULT_API_VERSION,
         &*instance_id,
-        "",
-        "",
+        &*plan_id,
+        &*service_id,
         Some(USER_AGENT),
         Some(!options.synchronous),
     )
