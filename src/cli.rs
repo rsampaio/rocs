@@ -163,6 +163,8 @@ pub async fn deprovision(
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
     let instance_id = matches.value_of("instance").unwrap().to_string();
+
+    // the spec requires this parameters
     let plan_id = matches.value_of("plan").unwrap_or("ignore").to_string();
     let service_id = matches.value_of("service").unwrap_or("ignore").to_string();
 
@@ -371,7 +373,7 @@ pub async fn bind(
                     generate_curl_command(
                         "service_binding".to_owned(),
                         "GET".to_owned(),
-                        serde_json::to_string_pretty(&binding_request).unwrap(),
+                        "".to_owned(),
                         options.synchronous,
                         instance_id.clone(),
                         binding_id.clone(),
@@ -379,7 +381,10 @@ pub async fn bind(
                 );
             }
         }
+        return Ok(());
+    }
 
+    if !matches.is_present("binding") {
         let binding_response = service_binding_binding(
             &config,
             DEFAULT_API_VERSION,
