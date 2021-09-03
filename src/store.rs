@@ -1,13 +1,14 @@
 use dirs::home_dir;
+use chrono::naive::NaiveDateTime; 
+use chrono::Local;
 use rusqlite::{params, Connection};
 use std::error::Error;
-use time::Timespec;
 
 #[derive(Debug)]
 struct Binding {
     binding_id: String,
     instance_id: String,
-    updated_at: Timespec,
+    updated_at: NaiveDateTime,
     data: String,
 }
 
@@ -27,8 +28,8 @@ pub fn binding_save(
     binding_table_check(&conn)?;
 
     conn.execute(
-        "INSERT INTO service_bindings (binding_id, instance_id, updated_at, data) VALUES (?1, ?2, ?3, ?4)",
-        params![binding_id, instance_id, time::get_time(), data],
+        "INSERT INTO service_bindings (binding_id, instance_id, updated_at, data) VALUES (?1, ?2, datetime('now'), ?3)",
+        params![binding_id, instance_id, data],
     )?;
 
     Ok(binding_id)
@@ -45,7 +46,7 @@ pub fn binding_instance_id(binding_id: &String) -> Result<(String, String), Box<
     let mut binding = Binding {
         binding_id: "".into(),
         instance_id: "".into(),
-        updated_at: Timespec::new(0, 0),
+        updated_at: Local::now().naive_local(),
         data: "".into(),
     };
 

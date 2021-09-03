@@ -569,7 +569,7 @@ async fn find_service_plan_id(
 
     let mut service_id = String::from("");
     let mut plan_id = String::from("");
-    let mut schemas: Schemas = Schemas::new();
+    let schemas: Schemas = Schemas::new();
 
     'outer: for s in catalog.services.unwrap() {
         if s.name == service {

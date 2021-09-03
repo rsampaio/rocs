@@ -14,17 +14,17 @@ serde_yaml = "^0.8"
 clap = "2.33.0"
 prettytable-rs = "^0.8"
 uuid = { version = "0.8.1", features = ["v4"] }
-time = "0.1.38"
-dirs = "2.0.2"
-rusqlite = "0.21.0"
+dirs = "3.0.2"
+chrono = "0.4.19"
+rusqlite = { version = "0.25.3", features = ["chrono"] }
 rocl = "0.0.7"
 valico = "3.2.0"
-openapiv3 = "0.3"
+openapiv3 = "0.5.0"
 tokio = { version = "1", features = ["full"] }
 
 [dependencies.reqwest]
 version = "^0.11"
 default-features = false
-features = ["json", "multipart"]
+features = ["json", "multipart", "rustls-tls"]
 
 [dev-dependencies]
