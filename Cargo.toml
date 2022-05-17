@@ -11,15 +11,15 @@ serde = "^1.0"
 serde_derive = "^1.0"
 serde_json = "^1.0"
 serde_yaml = "^0.8"
-clap = "2.33.0"
+clap = { version = "3.1.18", features = ["cargo", "env"] }
 prettytable-rs = "^0.8"
-uuid = { version = "0.8.1", features = ["v4"] }
-dirs = "3.0.2"
+uuid = { version = "1.0.0", features = ["v4"] }
+dirs = "4.0.0"
 chrono = "0.4.19"
-rusqlite = { version = "0.25.3", features = ["chrono"] }
+rusqlite = { version = "0.27.0", features = ["chrono"] }
 rocl = "0.0.7"
 valico = "3.2.0"
-openapiv3 = "0.5.0"
+openapiv3 = "1.0.1"
 tokio = { version = "1", features = ["full"] }
 
 [dependencies.reqwest]

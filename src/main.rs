@@ -1,114 +1,114 @@
 extern crate clap;
 extern crate rocl;
-extern crate rocs;
 
-use clap::{crate_authors, crate_version, App, AppSettings, Arg, SubCommand};
+use clap::{crate_authors, crate_version, Command, Arg};
 use rocl::apis::configuration::Configuration;
-use rocs::cli;
 use std::error::Error;
 use tokio;
+use rocs::cli;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let matches = App::new("rocs")
+    let matches = Command::new("rocs")
         .version(crate_version!())
         .author(crate_authors!())
         .about("Rust OSB Client 'Super'")
-        .setting(AppSettings::SubcommandRequiredElseHelp)
+        .subcommand_required(true)
+        .arg_required_else_help(true)
         .arg(
-            Arg::with_name("broker_url")
-                .short("b")
+            Arg::new("broker_url")
+                .short('b')
                 .long("broker")
                 .env("ROCS_BROKER_URL")
                 .takes_value(true)
                 .required(true),
         )
         .arg(
-            Arg::with_name("broker_user")
-                .short("u")
+            Arg::new("broker_user")
+                .short('u')
                 .long("username")
                 .env("ROCS_BROKER_USERNAME")
                 .takes_value(true)
                 .required(true),
         )
         .arg(
-            Arg::with_name("broker_pass")
-                .short("a")
+            Arg::new("broker_pass")
+                .short('a')
                 .long("password")
                 .env("ROCS_BROKER_PASSWORD")
                 .takes_value(true)
                 .required(true),
         )
         .arg(
-            Arg::with_name("json")
+            Arg::new("json")
                 .help("Prints result in JSON format")
                 .long("json")
                 .takes_value(false)
                 .required(false),
         )
         .arg(
-            Arg::with_name("sync")
+            Arg::new("sync")
                 .help("Execute provisioning and binding synchronously")
                 .long("sync")
                 .takes_value(false)
                 .required(false),
         )
         .arg(
-            Arg::with_name("curl")
+            Arg::new("curl")
                 .help("Prints cURL command")
                 .long("curl")
                 .takes_value(false)
                 .required(false),
         )
         .subcommand(
-            SubCommand::with_name("provision")
+            Command::new("provision")
                 .about("Service Instance provisioning")
                 .arg(
-                    Arg::with_name("service")
-                        .short("s")
+                    Arg::new("service")
+                        .short('s')
                         .long("service")
                         .takes_value(true)
                         .required(true)
                         .help("service offering to use for provision"),
                 )
                 .arg(
-                    Arg::with_name("plan")
-                        .short("p")
+                    Arg::new("plan")
+                        .short('p')
                         .long("plan")
                         .takes_value(true)
                         .required(true)
                         .help("service plan to use for provision"),
                 )
                 .arg(
-                    Arg::with_name("parameters")
-                        .short("P")
+                    Arg::new("parameters")
+                        .short('P')
                         .long("params")
-                        .multiple(true)
+                        .multiple_values(true)
                         .takes_value(true)
                         .help("parameters to provision service instances. ex: region=us-east-1 other=value"),
                 )
                 .arg(
-                    Arg::with_name("context")
-                        .short("C")
+                    Arg::new("context")
+                        .short('C')
                         .long("context")
-                        .multiple(true)
+                        .multiple_values(true)
                         .takes_value(true)
                         .help("context to provision service instances. ex: account_id=123 other=value"),
                 )
                 .arg(
-                    Arg::with_name("wait")
-                        .short("w")
+                    Arg::new("wait")
+                        .short('w')
                         .long("wait")
                         .takes_value(false)
                         .help("wait service instance provisioning to finish"),
                 ),
         )
         .subcommand(
-            SubCommand::with_name("deprovision")
+            Command::new("deprovision")
                 .about("Service Instance deprovisioning")
                 .arg(
-                    Arg::with_name("instance")
-                        .short("i")
+                    Arg::new("instance")
+                        .short('i')
                         .long("instance")
                         .takes_value(true)
                         .required(true)
@@ -116,61 +116,61 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("bind")
+            Command::new("bind")
                 .about("Service Binding request")
                 .arg(
-                    Arg::with_name("instance")
-                        .short("i")
+                    Arg::new("instance")
+                        .short('i')
                         .long("instance")
                         .takes_value(true)
                         .help("instance ID or name to bind")
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("binding")
-                        .short("b")
+                    Arg::new("binding")
+                        .short('b')
                         .long("binding")
                         .takes_value(true)
                         .help("binding ID to fetch if bindings are fetchable")
                 )
                 .arg(
-                    Arg::with_name("parameters")
-                        .short("P")
+                    Arg::new("parameters")
+                        .short('P')
                         .long("params")
-                        .multiple(true)
+                        .multiple_values(true)
                         .takes_value(true)
                         .help("parameters to provision service bindings. ex: param1=value1 param2=value2"),
                 )
                 .arg(
-                    Arg::with_name("context")
-                        .short("C")
+                    Arg::new("context")
+                        .short('C')
                         .long("context")
-                        .multiple(true)
+                        .multiple_values(true)
                         .takes_value(true)
                         .help("context to provision service bindings. ex: account_id=123 other=value"),
                 )
                 .arg(
-                    Arg::with_name("wait")
-                        .short("w")
+                    Arg::new("wait")
+                        .short('w')
                         .long("wait")
                         .takes_value(false)
                         .help("wait service binding provisioning to finish")
                 )
         )
         .subcommand(
-            SubCommand::with_name("unbind")
+            Command::new("unbind")
                 .about("Service Binding removal")
                 .arg(
-                    Arg::with_name("instance")
-                        .short("i")
+                    Arg::new("instance")
+                        .short('i')
                         .long("instance")
                         .takes_value(true)
                         .help("instance ID or name to bind")
                         .required(true),
                 )
                 .arg(
-                    Arg::with_name("binding")
-                        .short("b")
+                    Arg::new("binding")
+                        .short('b')
                         .long("binding")
                         .takes_value(true)
                         .help("Binding ID to unbind")
@@ -178,16 +178,16 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 ),
         )
         .subcommand(
-            SubCommand::with_name("catalog")
+            Command::new("catalog")
                 .about("Catalog request")
                 .alias("cat"),
         )
         .subcommand(
-            SubCommand::with_name("info")
+            Command::new("info")
                 .about("Fetch Service Instances information")
                 .arg(
-                    Arg::with_name("instance")
-                        .short("i")
+                    Arg::new("instance")
+                        .short('i')
                         .long("instance")
                         .takes_value(true)
                         .help("instance ID to fetch information")
@@ -195,46 +195,46 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 )
         )
         .subcommand(
-            SubCommand::with_name("extension")
+            Command::new("extension")
                 .about("Extension interaction")
                 .alias("ext")
                 .arg(
-                    Arg::with_name("instance")
-                        .short("i")
+                    Arg::new("instance")
+                        .short('i')
                         .help("Instance ID to access extension")
                         .takes_value(true)
                         .required(true)
                 )
                 .arg(
-                    Arg::with_name("id")
-                        .short("I")
+                    Arg::new("id")
+                        .short('I')
                         .help("Extension ID")
                         .takes_value(true)
                         .required(true)
                 )
                 .arg(
-                    Arg::with_name("operation")
-                        .short("o")
+                    Arg::new("operation")
+                        .short('o')
                         .help("Operation to perform")
                         .takes_value(true)
-                        .required_unless("list")
+                        .required_unless_present("list")
                 )
                 .arg(
-                    Arg::with_name("parameters")
-                        .short("P")
+                    Arg::new("parameters")
+                        .short('P')
                         .help("All parameters required for this action including path parameters")
                         .takes_value(true)
-                        .multiple(true)
+                        .multiple_values(true)
                 )
                 .arg(
-                    Arg::with_name("body")
-                        .short("B")
+                    Arg::new("body")
+                        .short('B')
                         .help("Request body with required fields")
                         .takes_value(true)
                 )
                 .arg(
-                    Arg::with_name("list")
-                        .short("l")
+                    Arg::new("list")
+                        .short('l')
                         .help("List operations and parameters available for an extension")
                         .takes_value(false)
                 )
