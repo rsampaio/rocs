@@ -37,7 +37,7 @@ pub struct Options {
 }
 
 pub async fn info(
-    args: &ArgMatches<'_>,
+    args: &ArgMatches,
     config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
@@ -92,7 +92,7 @@ pub async fn info(
 }
 
 pub async fn catalog(
-    _: &ArgMatches<'_>,
+    _: &ArgMatches,
     config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
@@ -158,7 +158,7 @@ pub async fn catalog(
 }
 
 pub async fn deprovision(
-    matches: &ArgMatches<'_>,
+    matches: &ArgMatches,
     config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
@@ -198,14 +198,14 @@ pub async fn deprovision(
 }
 
 pub async fn provision(
-    matches: &ArgMatches<'_>,
+    matches: &ArgMatches,
     config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
     let service = matches.value_of("service").unwrap().to_string();
     let plan = matches.value_of("plan").unwrap().to_string();
 
-    let (service_id, plan_id, schemas) = find_service_plan_id(config.clone(), service, plan)
+    let (service_id, plan_id, _schemas) = find_service_plan_id(config.clone(), service, plan)
         .await
         .expect("service or plan id not found");
 
@@ -224,7 +224,7 @@ pub async fn provision(
     provision_request.parameters = Some(json!(parse_parameters(parameters).unwrap()));
     provision_request.context = Some(json!(parse_parameters(context).unwrap()));
 
-    let instance_id = Uuid::new_v4().to_hyphenated().to_string();
+    let instance_id = Uuid::new_v4().as_hyphenated().to_string();
 
     if options.curl_output {
         println!(
@@ -314,11 +314,11 @@ pub async fn provision(
 }
 
 pub async fn bind(
-    matches: &ArgMatches<'_>,
+    matches: &ArgMatches,
     config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
-    let mut binding_id = Uuid::new_v4().to_hyphenated().to_string();
+    let mut binding_id = Uuid::new_v4().as_hyphenated().to_string();
     let instance_id = matches.value_of("instance").unwrap().to_string();
 
     // bindings
@@ -476,7 +476,7 @@ pub async fn bind(
 }
 
 pub async fn unbind(
-    matches: &ArgMatches<'_>,
+    matches: &ArgMatches,
     config: Configuration,
     options: Options,
 ) -> Result<(), Box<dyn Error>> {
@@ -612,7 +612,7 @@ pub fn parse_parameters(
     Ok(parsed_params)
 }
 
-fn validate_service_schema(
+fn _validate_service_schema(
     schema: Schemas,
     parameters: Option<clap::Values>,
 ) -> Result<(), Box<dyn Error>> {
