@@ -1,11 +1,11 @@
 extern crate clap;
 extern crate rocl;
 
-use clap::{crate_authors, crate_version, Command, Arg};
+use clap::{crate_authors, crate_version, Arg, Command};
 use rocl::apis::configuration::Configuration;
+use rocs::cli;
 use std::error::Error;
 use tokio;
-use rocs::cli;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {

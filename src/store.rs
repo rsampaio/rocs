@@ -1,6 +1,6 @@
-use dirs::home_dir;
 use chrono::naive::NaiveDateTime;
 use chrono::Local;
+use dirs::home_dir;
 use rusqlite::{params, Connection};
 use std::error::Error;
 
@@ -44,7 +44,7 @@ pub fn binding_instance_id(binding_id: &String) -> Result<(String, String), Box<
     let mut binding = Binding {
         binding_id: "".into(),
         instance_id: "".into(),
-        updated_at: Local::now().naive_local()
+        updated_at: Local::now().naive_local(),
     };
 
     let mut rows = stmt.query(params![binding_id])?;
